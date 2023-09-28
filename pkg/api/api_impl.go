@@ -2063,7 +2063,13 @@ func loadPlugins(initialOptions *BuildOptions, fs fs.FS, log logger.Log, caches 
 			}
 
 			// Make a new resolver so it has its own log
-			log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, validateLogOverrides(initialOptions.LogOverride))
+			logKind := logger.DeferLogNoVerboseOrDebug
+			if log.Level <= logger.LevelVerbose {
+				logKind = logger.DeferLogAll
+			}
+			logLevel := log.Level
+			log := logger.NewDeferLog(logKind, validateLogOverrides(initialOptions.LogOverride))
+			log.Level = logLevel
 			optionsClone := *optionsForResolve
 			resolver := resolver.NewResolver(config.BuildCall, fs, log, caches, &optionsClone)
 
