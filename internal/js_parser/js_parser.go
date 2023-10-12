@@ -17268,7 +17268,7 @@ func ParseDefineExprOrJSON(text string) (config.DefineExpr, js_ast.E) {
 	}
 
 	// Try parsing a JSON value
-	log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, nil)
+	log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, logger.LevelInfo, nil)
 	expr, ok := ParseJSON(log, logger.Source{Contents: text}, JSONOptions{})
 	if !ok {
 		return config.DefineExpr{}, nil
