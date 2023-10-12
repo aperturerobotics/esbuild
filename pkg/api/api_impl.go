@@ -924,7 +924,7 @@ func contextImpl(buildOpts BuildOptions) (*internalContext, []Message) {
 	// directory doesn't change, since breaking that invariant would break the
 	// validation that we just did above.
 	caches := cache.MakeCacheSet()
-	log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, logOptions.Overrides)
+	log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, logOptions.LogLevel, logOptions.Overrides)
 	onEndCallbacks, onDisposeCallbacks, finalizeBuildOptions := loadPlugins(&buildOpts, realFS, log, caches)
 	options, entryPoints := validateBuildOptions(buildOpts, log, realFS)
 	finalizeBuildOptions(&options)
@@ -2052,6 +2052,7 @@ func loadPlugins(initialOptions *BuildOptions, fs fs.FS, log logger.Log, caches 
 		optionsForResolve = options
 	}
 
+	logLevel := log.Level
 	for i, item := range clone {
 		if item.Name == "" {
 			log.AddError(nil, logger.Range{}, fmt.Sprintf("Plugin at index %d is missing a name", i))
@@ -2077,7 +2078,7 @@ func loadPlugins(initialOptions *BuildOptions, fs fs.FS, log logger.Log, caches 
 			}
 
 			// Make a new resolver so it has its own log
-			log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, validateLogOverrides(initialOptions.LogOverride))
+			log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, logLevel, validateLogOverrides(initialOptions.LogOverride))
 			optionsClone := *optionsForResolve
 			resolver := resolver.NewResolver(config.BuildCall, fs, log, caches, &optionsClone)
 
@@ -2238,7 +2239,11 @@ func getObjectPropertyArray(expr js_ast.Expr, key string) *js_ast.EArray {
 }
 
 func analyzeMetafileImpl(metafile string, opts AnalyzeMetafileOptions) string {
-	log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, nil)
+	logLevel := logger.LevelInfo
+	if opts.Verbose {
+		logLevel = logger.LevelDebug
+	}
+	log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, logLevel, nil)
 	source := logger.Source{Contents: metafile}
 
 	if result, ok := js_parser.ParseJSON(log, source, js_parser.JSONOptions{}); ok {
