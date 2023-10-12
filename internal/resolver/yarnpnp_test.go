@@ -51,7 +51,7 @@ func TestYarnPnP(t *testing.T) {
 			PrettyPath: path,
 			Contents:   string(contents),
 		}
-		tempLog := logger.NewDeferLog(logger.DeferLogAll, nil)
+		tempLog := logger.NewDeferLog(logger.DeferLogAll, logger.LevelInfo, nil)
 		expr, ok := js_parser.ParseJSON(tempLog, source, js_parser.JSONOptions{})
 		if !ok {
 			t.Fatalf("Failed to re-parse JSON: %s", path)
@@ -68,7 +68,7 @@ func TestYarnPnP(t *testing.T) {
 			func(current pnpTest) {
 				t.Run(current.It, func(t *testing.T) {
 					fs := fs.MockFS(nil, fs.MockUnix, "/")
-					r := resolverQuery{Resolver: NewResolver(config.BuildCall, fs, logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, nil), nil, &config.Options{})}
+					r := resolverQuery{Resolver: NewResolver(config.BuildCall, fs, logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, logger.LevelInfo, nil), nil, &config.Options{})}
 					result := r.resolveToUnqualified(current.Imported, current.Importer, manifest)
 
 					var observed string

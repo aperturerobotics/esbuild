@@ -157,7 +157,7 @@ func (s *suite) __expectBundledImpl(t *testing.T, args bundled, fsKind fs.MockKi
 		}
 
 		// Run the bundler
-		log := logger.NewDeferLog(logKind, nil)
+		log := logger.NewDeferLog(logKind, logger.LevelInfo, nil)
 		caches := cache.MakeCacheSet()
 		mockFS := fs.MockFS(args.files, fsKind, args.absWorkingDir)
 		args.options.OmitRuntimeForTests = true
@@ -170,7 +170,7 @@ func (s *suite) __expectBundledImpl(t *testing.T, args bundled, fsKind fs.MockKi
 			return
 		}
 
-		log = logger.NewDeferLog(logKind, nil)
+		log = logger.NewDeferLog(logKind, logger.LevelInfo, nil)
 		results, metafileJSON := bundle.Compile(log, nil, nil, linker.Link)
 		msgs = log.Done()
 		assertLog(t, msgs, args.expectedCompileLog)

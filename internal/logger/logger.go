@@ -1108,13 +1108,13 @@ const (
 	DeferLogNoVerboseOrDebug
 )
 
-func NewDeferLog(kind DeferLogKind, overrides map[MsgID]LogLevel) Log {
+func NewDeferLog(kind DeferLogKind, logLevel LogLevel, overrides map[MsgID]LogLevel) Log {
 	var msgs SortableMsgs
 	var mutex sync.Mutex
 	var hasErrors bool
 
 	return Log{
-		Level:     LevelInfo,
+		Level:     logLevel,
 		Overrides: overrides,
 
 		AddMsg: func(msg Msg) {
