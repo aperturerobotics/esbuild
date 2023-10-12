@@ -542,7 +542,7 @@ func parseFile(args parseArgs) {
 				if path, contents := extractSourceMapFromComment(args.log, args.fs, &args.caches.FSCache,
 					args.res, &source, &tracker, sourceMapComment, absResolveDir); contents != nil {
 					prettyPath := resolver.PrettyPath(args.fs, path)
-					log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, args.log.Level, args.log.Overrides)
+					log := logger.NewDeferLog(logger.DeferLogAll, args.log.Level, args.log.Overrides)
 
 					sourceMap := js_parser.ParseSourceMap(log, logger.Source{
 						KeyPath:    path,
