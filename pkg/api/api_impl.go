@@ -917,7 +917,7 @@ func contextImpl(buildOpts BuildOptions) (*internalContext, []Message) {
 	// directory doesn't change, since breaking that invariant would break the
 	// validation that we just did above.
 	caches := cache.MakeCacheSet()
-	log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, logOptions.LogLevel, logOptions.Overrides)
+	log := logger.NewDeferLog(logger.DeferLogAll, logOptions.LogLevel, logOptions.Overrides)
 	onEndCallbacks, onDisposeCallbacks, finalizeBuildOptions := loadPlugins(&buildOpts, realFS, log, caches)
 	options, entryPoints := validateBuildOptions(buildOpts, log, realFS)
 	finalizeBuildOptions(&options)
@@ -941,6 +941,12 @@ func contextImpl(buildOpts BuildOptions) (*internalContext, []Message) {
 			stderr.Done()
 		}
 		return nil, convertMessagesToPublic(logger.Error, msgs)
+	} else if logOptions.LogLevel == logger.LevelVerbose {
+		stderr := logger.NewStderrLog(logOptions)
+		for _, msg := range msgs {
+			stderr.AddMsg(msg)
+		}
+		stderr.Done()
 	}
 
 	args := rebuildArgs{
@@ -2038,7 +2044,7 @@ func loadPlugins(initialOptions *BuildOptions, fs fs.FS, log logger.Log, caches 
 		optionsForResolve = options
 	}
 
-	logLevel := log.Level
+	parentLogger, parentLogLevel := log, log.Level
 	for i, item := range clone {
 		if item.Name == "" {
 			log.AddError(nil, logger.Range{}, fmt.Sprintf("Plugin at index %d is missing a name", i))
@@ -2064,7 +2070,7 @@ func loadPlugins(initialOptions *BuildOptions, fs fs.FS, log logger.Log, caches 
 			}
 
 			// Make a new resolver so it has its own log
-			log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, logLevel, validateLogOverrides(initialOptions.LogOverride))
+			log := logger.NewDeferLog(logger.DeferLogAll, parentLogLevel, validateLogOverrides(initialOptions.LogOverride))
 			optionsClone := *optionsForResolve
 			resolver := resolver.NewResolver(config.BuildCall, fs, log, caches, &optionsClone)
 
@@ -2094,6 +2100,13 @@ func loadPlugins(initialOptions *BuildOptions, fs fs.FS, log logger.Log, caches 
 				options.PluginData,
 			)
 			msgs := log.Done()
+
+			// Log if set to verbose
+			if parentLogLevel == logger.LevelVerbose {
+				for _, msg := range msgs {
+					parentLogger.AddMsg(msg)
+				}
+			}
 
 			// Populate the result
 			result.Errors = convertMessagesToPublic(logger.Error, msgs)
