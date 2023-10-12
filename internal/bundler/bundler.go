@@ -517,7 +517,7 @@ func parseFile(args parseArgs) {
 				if path, contents := extractSourceMapFromComment(args.log, args.fs, &args.caches.FSCache,
 					args.res, &source, &tracker, sourceMapComment, absResolveDir); contents != nil {
 					prettyPath := resolver.PrettyPath(args.fs, path)
-					log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, args.log.Overrides)
+					log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, args.log.Level, args.log.Overrides)
 
 					sourceMap := js_parser.ParseSourceMap(log, logger.Source{
 						KeyPath:    path,
@@ -3001,7 +3001,7 @@ func (cache *runtimeCache) parseRuntime(options *config.Options) (source logger.
 	}
 
 	// Cache miss
-	log := logger.NewDeferLog(logger.DeferLogAll, nil)
+	log := logger.NewDeferLog(logger.DeferLogAll, logger.LevelInfo, nil)
 	runtimeAST, ok = js_parser.Parse(log, source, js_parser.OptionsFromConfig(&config.Options{
 		// These configuration options must only depend on the key
 		UnsupportedJSFeatures: key.unsupportedJSFeatures,
