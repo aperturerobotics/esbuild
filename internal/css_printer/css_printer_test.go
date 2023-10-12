@@ -14,7 +14,7 @@ func expectPrintedCommon(t *testing.T, name string, contents string, expected st
 	t.Helper()
 	t.Run(name, func(t *testing.T) {
 		t.Helper()
-		log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, nil)
+		log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, logger.LevelInfo, nil)
 		tree := css_parser.Parse(log, test.SourceForTest(contents), css_parser.OptionsFromConfig(config.LoaderCSS, &config.Options{
 			MinifyWhitespace: options.MinifyWhitespace,
 		}))
