@@ -1,5 +1,37 @@
 # Changelog
 
+## aperture-7
+
+* Allow resolving package.json within packages
+
+    Enables the following type of import:
+
+    ```ts
+    const pkg = require('@mantine/core/package.json');
+    ```
+
+    This is used to access the contents of package.json which is usually not
+    exported by any of the exports within the package.json.
+
+* Defer log constructor now accepts log level
+
+    The NewDeferLog constructor defaults to LogLevelInfo regardless of the log level
+    specified in the bundler options. We should instead inherit the log level from
+    the parent logger so that we don't drop debug messages.
+
+    Add a new logLevel parameter to NewDeferLog. Updated all locations where
+    NewDeferLog is called to either pass the parent logger level or to pass the old
+    default value of LogLevelInfo if there is no parent logger.
+
+* Fork to aperturerobotics/esbuild
+
+    Main changes:
+
+    - Support go1.20 and Node.JS 21 primarily
+    - Allow resolving package.json within any package
+    - Add renovate ci
+    - Other tweaks & fixes
+
 ## 0.19.11
 
 * Fix TypeScript-specific class transform edge case ([#3559](https://github.com/evanw/esbuild/issues/3559))
