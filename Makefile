@@ -19,9 +19,6 @@ test-common: test-go vet-go no-filepath verify-source-map end-to-end-tests js-ap
 test-all:
 	@$(MAKE) --no-print-directory -j6 test-common test-deno ts-type-tests test-wasm-node test-wasm-browser lib-typecheck test-yarnpnp
 
-check-go-version:
-	@go version | grep ' go1\.20\.12 ' || (echo 'Please install Go version 1.20.12' && false)
-
 # Note: Don't add "-race" here by default. The Go race detector is currently
 # only supported on the following configurations:
 #
@@ -388,7 +385,7 @@ platform-neutral: esbuild
 platform-deno: platform-wasm
 	node scripts/esbuild.js ./esbuild --deno
 
-publish-all: check-go-version
+publish-all:
 	@npm --version > /dev/null || (echo "The 'npm' command must be in your path to publish" && false)
 	@echo "Checking for uncommitted/untracked changes..." && test -z "`git status --porcelain | grep -vE 'M (CHANGELOG\.md|version\.txt)'`" || \
 		(echo "Refusing to publish with these uncommitted/untracked changes:" && \
