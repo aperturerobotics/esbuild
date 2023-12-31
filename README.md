@@ -37,3 +37,9 @@ Major features:
 - [Local server](https://esbuild.github.io/api/#serve), [watch mode](https://esbuild.github.io/api/#watch), and [plugins](https://esbuild.github.io/plugins/)
 
 Check out the [getting started](https://esbuild.github.io/getting-started/) instructions if you want to give esbuild a try.
+
+## Fork
+
+**This is a fork of esbuild with some tweaks. Check out the [upstream project] as well.**
+
+[upstream project]: https://github.com/esbuild/esbuild
