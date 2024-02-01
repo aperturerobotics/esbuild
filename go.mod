@@ -6,4 +6,4 @@ module github.com/evanw/esbuild
 // it's full of security vulnerabilities, we chose to support go 1.20 instead.
 go 1.20
 
-require golang.org/x/sys v0.15.0
+require golang.org/x/sys v0.16.0
