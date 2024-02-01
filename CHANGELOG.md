@@ -1,5 +1,72 @@
 # Changelog
 
+## 0.20.0
+
+**This release deliberately contains backwards-incompatible changes.** To avoid automatically picking up releases like this, you should either be pinning the exact version of `esbuild` in your `package.json` file (recommended) or be using a version range syntax that only accepts patch upgrades such as `^0.19.0` or `~0.19.0`. See npm's documentation about [semver](https://docs.npmjs.com/cli/v6/using-npm/semver/) for more information.
+
+This time there is only one breaking change, and it only matters for people using Deno. Deno tests that use esbuild will now fail unless you make the change described below.
+
+* Work around API deprecations in Deno 1.40.x ([#3609](https://github.com/evanw/esbuild/issues/3609), [#3611](https://github.com/evanw/esbuild/pull/3611))
+
+    [Deno 1.40.0](https://deno.com/blog/v1.40) was just released and introduced run-time warnings about certain APIs that esbuild uses. With this release, esbuild will work around these run-time warnings by using newer APIs if they are present and falling back to the original APIs otherwise. This should avoid the warnings without breaking compatibility with older versions of Deno.
+
+    Unfortunately, doing this introduces a breaking change. The newer child process APIs lack a way to synchronously terminate esbuild's child process, so calling `esbuild.stop()` from within a Deno test is no longer sufficient to prevent Deno from failing a test that uses esbuild's API (Deno fails tests that create a child process without killing it before the test ends). To work around this, esbuild's `stop()` function has been changed to return a promise, and you now have to change `esbuild.stop()` to `await esbuild.stop()` in all of your Deno tests.
+
+* Reorder implicit file extensions within `node_modules` ([#3341](https://github.com/evanw/esbuild/issues/3341), [#3608](https://github.com/evanw/esbuild/issues/3608))
+
+    In [version 0.18.0](https://github.com/evanw/esbuild/releases/v0.18.0), esbuild changed the behavior of implicit file extensions within `node_modules` directories (i.e. in published packages) to prefer `.js` over `.ts` even when the `--resolve-extensions=` order prefers `.ts` over `.js` (which it does by default). However, doing that also accidentally made esbuild prefer `.css` over `.ts`, which caused problems for people that published packages containing both TypeScript and CSS in files with the same name.
+
+    With this release, esbuild will reorder TypeScript file extensions immediately after the last JavaScript file extensions in the implicit file extension order instead of putting them at the end of the order. Specifically the default implicit file extension order is `.tsx,.ts,.jsx,.js,.css,.json` which used to become `.jsx,.js,.css,.json,.tsx,.ts` in `node_modules` directories. With this release it will now become `.jsx,.js,.tsx,.ts,.css,.json` instead.
+
+    Why even rewrite the implicit file extension order at all? One reason is because the `.js` file is more likely to behave correctly than the `.ts` file. The behavior of the `.ts` file  may depend on `tsconfig.json` and the `tsconfig.json` file may not even be published, or may use `extends` to refer to a base `tsconfig.json` file that wasn't published. People can get into this situation when they forget to add all `.ts` files to their `.npmignore` file before publishing to npm. Picking `.js` over `.ts` helps make it more likely that resulting bundle will behave correctly.
+
+## 0.19.12
+
+* The "preserve" JSX mode now preserves JSX text verbatim ([#3605](https://github.com/evanw/esbuild/issues/3605))
+
+    The [JSX specification](https://facebook.github.io/jsx/) deliberately doesn't specify how JSX text is supposed to be interpreted and there is no canonical way to interpret JSX text. Two most popular interpretations are Babel and TypeScript. Yes [they are different](https://twitter.com/jarredsumner/status/1456118847937781764) (esbuild [deliberately follows TypeScript](https://twitter.com/evanwallace/status/1456122279453208576) by the way).
+
+    Previously esbuild normalized text to the TypeScript interpretation when the "preserve" JSX mode is active. However, "preserve" should arguably reproduce the original JSX text verbatim so that whatever JSX transform runs after esbuild is free to interpret it however it wants. So with this release, esbuild will now pass JSX text through unmodified:
+
+    ```jsx
+    // Original code
+    let el =
+      <a href={'/'} title='&apos;&quot;'> some text
+        {foo}
+          more text </a>
+
+    // Old output (with --loader=jsx --jsx=preserve)
+    let el = <a href="/" title={`'"`}>
+      {" some text"}
+      {foo}
+      {"more text "}
+    </a>;
+
+    // New output (with --loader=jsx --jsx=preserve)
+    let el = <a href={"/"} title='&apos;&quot;'> some text
+        {foo}
+          more text </a>;
+    ```
+
+* Allow JSX elements as JSX attribute values
+
+    JSX has an obscure feature where you can use JSX elements in attribute position without surrounding them with `{...}`. It looks like this:
+
+    ```jsx
+    let el = <div data-ab=<><a/><b/></>/>;
+    ```
+
+    I think I originally didn't implement it even though it's part of the [JSX specification](https://facebook.github.io/jsx/) because it previously didn't work in TypeScript (and potentially also in Babel?). However, support for it was [silently added in TypeScript 4.8](https://github.com/microsoft/TypeScript/pull/47994) without me noticing and Babel has also since fixed their [bugs regarding this feature](https://github.com/babel/babel/pull/6006). So I'm adding it to esbuild too now that I know it's widely supported.
+
+    Keep in mind that there is some ongoing discussion about [removing this feature from JSX](https://github.com/facebook/jsx/issues/53). I agree that the syntax seems out of place (it does away with the elegance of "JSX is basically just XML with `{...}` escapes" for something arguably harder to read, which doesn't seem like a good trade-off), but it's in the specification and TypeScript and Babel both implement it so I'm going to have esbuild implement it too. However, I reserve the right to remove it from esbuild if it's ever removed from the specification in the future. So use it with caution.
+
+* Fix a bug with TypeScript type parsing ([#3574](https://github.com/evanw/esbuild/issues/3574))
+
+    This release fixes a bug with esbuild's TypeScript parser where a conditional type containing a union type that ends with an infer type that ends with a constraint could fail to parse. This was caused by the "don't parse a conditional type" flag not getting passed through the union type parser. Here's an example of valid TypeScript code that previously failed to parse correctly:
+
+    ```ts
+    type InferUnion<T> = T extends { a: infer U extends number } | infer U extends number ? U : never
+    ```
 ## aperture-7
 
 * Allow resolving package.json within packages
