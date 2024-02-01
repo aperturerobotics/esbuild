@@ -18,14 +18,12 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 21
 
-      # The version of Deno is pinned because version 1.25.1 was causing test
-      # flakes due to random segfaults.
-      - name: Setup Deno 1.24.0
+      - name: Setup Deno 1.40.2
         uses: denoland/setup-deno@main
         with:
-          deno-version: v1.24.0
+          deno-version: v1.40.2
 
       - name: Test npm
         run: |
