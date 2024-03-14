@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    tags: ['v*', 'aperture-*']
+    tags: ['aperture-*']
 
 permissions: {}
 jobs:
