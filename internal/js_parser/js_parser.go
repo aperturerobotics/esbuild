@@ -1068,7 +1068,7 @@ func (p *parser) pushScopeForParsePass(kind js_ast.ScopeKind, loc logger.Loc) in
 	p.currentScope = scope
 
 	// Enforce that scope locations are strictly increasing to help catch bugs
-	// where the pushed scopes are mistmatched between the first and second passes
+	// where the pushed scopes are mismatched between the first and second passes
 	if len(p.scopesInOrder) > 0 {
 		prevStart := p.scopesInOrder[len(p.scopesInOrder)-1].loc.Start
 		if prevStart >= loc.Start {
@@ -2070,10 +2070,11 @@ func (p *parser) parseProperty(startLoc logger.Loc, kind js_ast.PropertyKind, op
 		p.lexer.Next()
 
 	case js_lexer.TPrivateIdentifier:
-		if !opts.isClass || (p.options.ts.Config.ExperimentalDecorators == config.True && len(opts.decorators) > 0) {
+		if p.options.ts.Parse && p.options.ts.Config.ExperimentalDecorators == config.True && len(opts.decorators) > 0 {
+			p.log.AddError(&p.tracker, p.lexer.Range(), "TypeScript experimental decorators cannot be used on private identifiers")
+		} else if !opts.isClass {
 			p.lexer.Expected(js_lexer.TIdentifier)
-		}
-		if opts.tsDeclareRange.Len != 0 {
+		} else if opts.tsDeclareRange.Len != 0 {
 			p.log.AddError(&p.tracker, opts.tsDeclareRange, "\"declare\" cannot be used with a private identifier")
 		}
 		name := p.lexer.Identifier
