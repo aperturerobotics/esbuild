@@ -19,7 +19,7 @@ _e = new WeakMap();
 ================================================================================
 TestJavaScriptAutoAccessorES2021
 ---------- /out/js-define.js ----------
-var _one, __two, _Foo_instances, two_get, two_set, _a, _a2, _four, __five, _Foo_static, five_get, five_set, _b, _b2;
+var _a, _b, _one, __two, _Foo_instances, two_get, two_set, _a2, _four, __five, _Foo_static, five_get, five_set, _b2;
 class Foo {
   constructor() {
     __privateAdd(this, _Foo_instances);
@@ -33,10 +33,10 @@ class Foo {
   set one(_) {
     __privateSet(this, _one, _);
   }
-  get [_a = three()]() {
+  get [_b = three()]() {
     return __privateGet(this, _a2);
   }
-  set [_a](_) {
+  set [_b](_) {
     __privateSet(this, _a2, _);
   }
   static get four() {
@@ -45,10 +45,10 @@ class Foo {
   static set four(_) {
     __privateSet(this, _four, _);
   }
-  static get [_b = six()]() {
+  static get [_a = six()]() {
     return __privateGet(this, _b2);
   }
-  static set [_b](_) {
+  static set [_a](_) {
     __privateSet(this, _b2, _);
   }
 }
@@ -78,7 +78,7 @@ __privateAdd(Foo, __five, 5);
 __privateAdd(Foo, _b2, 6);
 
 ---------- /out/ts-define/ts-define.js ----------
-var _one, __two, _Foo_instances, two_get, two_set, _a, _a2, _four, __five, _Foo_static, five_get, five_set, _b, _b2, _a3, __a, _Private_instances, a_get, a_set, _a4, __a2, _StaticPrivate_static, a_get2, a_set2;
+var _a, _b, _one, __two, _Foo_instances, two_get, two_set, _a2, _four, __five, _Foo_static, five_get, five_set, _b2, _a3, __a, _Private_instances, a_get, a_set, _a4, __a2, _StaticPrivate_static, a_get2, a_set2;
 class Foo {
   constructor() {
     __privateAdd(this, _Foo_instances);
@@ -92,10 +92,10 @@ class Foo {
   set one(_) {
     __privateSet(this, _one, _);
   }
-  get [_a = three()]() {
+  get [_b = three()]() {
     return __privateGet(this, _a2);
   }
-  set [_a](_) {
+  set [_b](_) {
     __privateSet(this, _a2, _);
   }
   static get four() {
@@ -104,10 +104,10 @@ class Foo {
   static set four(_) {
     __privateSet(this, _four, _);
   }
-  static get [_b = six()]() {
+  static get [_a = six()]() {
     return __privateGet(this, _b2);
   }
-  static set [_b](_) {
+  static set [_a](_) {
     __privateSet(this, _b2, _);
   }
 }
@@ -189,7 +189,7 @@ __privateAdd(StaticPrivate, __a2, b);
 __publicField(StaticPrivate, "c", d);
 
 ---------- /out/ts-assign/ts-assign.js ----------
-var _one, __two, _Foo_instances, two_get, two_set, _a, _a2, _four, __five, _Foo_static, five_get, five_set, _b, _b2, _a3, __a, _Private_instances, a_get, a_set, _a4, __a2, _StaticPrivate_static, a_get2, a_set2;
+var _a, _b, _one, __two, _Foo_instances, two_get, two_set, _a2, _four, __five, _Foo_static, five_get, five_set, _b2, _a3, __a, _Private_instances, a_get, a_set, _a4, __a2, _StaticPrivate_static, a_get2, a_set2;
 class Foo {
   constructor() {
     __privateAdd(this, _Foo_instances);
@@ -203,10 +203,10 @@ class Foo {
   set one(_) {
     __privateSet(this, _one, _);
   }
-  get [_a = three()]() {
+  get [_b = three()]() {
     return __privateGet(this, _a2);
   }
-  set [_a](_) {
+  set [_b](_) {
     __privateSet(this, _a2, _);
   }
   static get four() {
@@ -215,10 +215,10 @@ class Foo {
   static set four(_) {
     __privateSet(this, _four, _);
   }
-  static get [_b = six()]() {
+  static get [_a = six()]() {
     return __privateGet(this, _b2);
   }
-  static set [_b](_) {
+  static set [_a](_) {
     __privateSet(this, _b2, _);
   }
 }
@@ -319,10 +319,10 @@ class Foo {
     this.#_two = _;
   }
   #a = 3;
-  get [_a = three()]() {
+  get [_b = three()]() {
     return this.#a;
   }
-  set [_a](_) {
+  set [_b](_) {
     this.#a = _;
   }
   static #four = 4;
@@ -340,10 +340,10 @@ class Foo {
     this.#_five = _;
   }
   static #b = 6;
-  static get [_b = six()]() {
+  static get [_a = six()]() {
     return this.#b;
   }
-  static set [_b](_) {
+  static set [_a](_) {
     this.#b = _;
   }
 }
@@ -366,10 +366,10 @@ class Foo {
     this.#_two = _;
   }
   #a = 3;
-  get [_a = three()]() {
+  get [_b = three()]() {
     return this.#a;
   }
-  set [_a](_) {
+  set [_b](_) {
     this.#a = _;
   }
   static #four = 4;
@@ -387,10 +387,10 @@ class Foo {
     this.#_five = _;
   }
   static #b = 6;
-  static get [_b = six()]() {
+  static get [_a = six()]() {
     return this.#b;
   }
-  static set [_b](_) {
+  static set [_a](_) {
     this.#b = _;
   }
 }
@@ -436,7 +436,7 @@ class StaticPrivate {
 }
 
 ---------- /out/ts-assign/ts-assign.js ----------
-var _a, _b;
+var _a, _b, _a2, __a;
 class Foo {
   #one = 1;
   get one() {
@@ -453,10 +453,10 @@ class Foo {
     this.#_two = _;
   }
   #a = 3;
-  get [_a = three()]() {
+  get [_b = three()]() {
     return this.#a;
   }
-  set [_a](_) {
+  set [_b](_) {
     this.#a = _;
   }
   static #four = 4;
@@ -474,39 +474,39 @@ class Foo {
     this.#_five = _;
   }
   static #b = 6;
-  static get [_b = six()]() {
+  static get [_a = six()]() {
     return this.#b;
   }
-  static set [_b](_) {
+  static set [_a](_) {
     this.#b = _;
   }
 }
 class Normal {
   constructor() {
-    this.#a = b;
+    __privateAdd(this, _a2, b);
     this.c = d;
   }
-  #a;
   get a() {
-    return this.#a;
+    return __privateGet(this, _a2);
   }
   set a(_) {
-    this.#a = _;
+    __privateSet(this, _a2, _);
   }
 }
+_a2 = new WeakMap();
 class Private {
   constructor() {
-    this.#_a = b;
+    __privateAdd(this, __a, b);
     this.c = d;
   }
-  #_a;
   get #a() {
-    return this.#_a;
+    return __privateGet(this, __a);
   }
   set #a(_) {
-    this.#_a = _;
+    __privateSet(this, __a, _);
   }
 }
+__a = new WeakMap();
 class StaticNormal {
   static #a = b;
   static get a() {
@@ -571,6 +571,7 @@ class StaticPrivate {
 }
 
 ---------- /out/ts-assign/ts-assign.js ----------
+var _a, __a;
 class Foo {
   accessor one = 1;
   accessor #two = 2;
@@ -581,30 +582,30 @@ class Foo {
 }
 class Normal {
   constructor() {
-    this.#a = b;
+    __privateAdd(this, _a, b);
     this.c = d;
   }
-  #a;
   get a() {
-    return this.#a;
+    return __privateGet(this, _a);
   }
   set a(_) {
-    this.#a = _;
+    __privateSet(this, _a, _);
   }
 }
+_a = new WeakMap();
 class Private {
   constructor() {
-    this.#_a = b;
+    __privateAdd(this, __a, b);
     this.c = d;
   }
-  #_a;
   get #a() {
-    return this.#_a;
+    return __privateGet(this, __a);
   }
   set #a(_) {
-    this.#_a = _;
+    __privateSet(this, __a, _);
   }
 }
+__a = new WeakMap();
 class StaticNormal {
   static accessor a = b;
   static {
@@ -617,6 +618,165 @@ class StaticPrivate {
     this.c = d;
   }
 }
+
+================================================================================
+TestJavaScriptDecoratorsBundleIssue3768
+---------- /out/base-instance-accessor.js ----------
+// base-instance-accessor.js
+var _foo_dec, _init, _foo;
+_foo_dec = [dec];
+var _Foo = class _Foo {
+  constructor() {
+    __privateAdd(this, _foo, __runInitializers(_init, 8, this, _Foo)), __runInitializers(_init, 11, this);
+  }
+};
+_init = __decoratorStart(null);
+_foo = new WeakMap();
+__decorateElement(_init, 4, "foo", _foo_dec, _Foo, _foo);
+var Foo = _Foo;
+
+---------- /out/base-instance-field.js ----------
+// base-instance-field.js
+var _foo_dec, _init;
+_foo_dec = [dec];
+var _Foo = class _Foo {
+  constructor() {
+    __publicField(this, "foo", __runInitializers(_init, 8, this, _Foo)), __runInitializers(_init, 11, this);
+  }
+};
+_init = __decoratorStart(null);
+__decorateElement(_init, 5, "foo", _foo_dec, _Foo);
+var Foo = _Foo;
+
+---------- /out/base-instance-method.js ----------
+// base-instance-method.js
+var _foo_dec, _init;
+_foo_dec = [dec];
+var _Foo = class _Foo {
+  constructor() {
+    __runInitializers(_init, 5, this);
+  }
+  foo() {
+    return _Foo;
+  }
+};
+_init = __decoratorStart(null);
+__decorateElement(_init, 1, "foo", _foo_dec, _Foo);
+var Foo = _Foo;
+
+---------- /out/base-static-accessor.js ----------
+// base-static-accessor.js
+var _foo_dec, _init, _foo;
+_foo_dec = [dec];
+var _Foo = class _Foo {
+};
+_init = __decoratorStart(null);
+_foo = new WeakMap();
+__decorateElement(_init, 12, "foo", _foo_dec, _Foo, _foo);
+__privateAdd(_Foo, _foo, __runInitializers(_init, 8, _Foo, _Foo)), __runInitializers(_init, 11, _Foo);
+var Foo = _Foo;
+
+---------- /out/base-static-field.js ----------
+// base-static-field.js
+var _foo_dec, _init;
+_foo_dec = [dec];
+var _Foo = class _Foo {
+};
+_init = __decoratorStart(null);
+__decorateElement(_init, 13, "foo", _foo_dec, _Foo);
+__publicField(_Foo, "foo", __runInitializers(_init, 8, _Foo, _Foo)), __runInitializers(_init, 11, _Foo);
+var Foo = _Foo;
+
+---------- /out/base-static-method.js ----------
+// base-static-method.js
+var _foo_dec, _init;
+_foo_dec = [dec];
+var _Foo = class _Foo {
+  static foo() {
+    return _Foo;
+  }
+};
+_init = __decoratorStart(null);
+__decorateElement(_init, 9, "foo", _foo_dec, _Foo);
+__runInitializers(_init, 3, _Foo);
+var Foo = _Foo;
+
+---------- /out/derived-instance-accessor.js ----------
+// derived-instance-accessor.js
+var _foo_dec, _a, _init, _foo;
+var _Foo = class _Foo extends (_a = Bar, _foo_dec = [dec], _a) {
+  constructor() {
+    super(...arguments);
+    __privateAdd(this, _foo, __runInitializers(_init, 8, this, _Foo)), __runInitializers(_init, 11, this);
+  }
+};
+_init = __decoratorStart(_a);
+_foo = new WeakMap();
+__decorateElement(_init, 4, "foo", _foo_dec, _Foo, _foo);
+var Foo = _Foo;
+
+---------- /out/derived-instance-field.js ----------
+// derived-instance-field.js
+var _foo_dec, _a, _init;
+var _Foo = class _Foo extends (_a = Bar, _foo_dec = [dec], _a) {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "foo", __runInitializers(_init, 8, this, _Foo)), __runInitializers(_init, 11, this);
+  }
+};
+_init = __decoratorStart(_a);
+__decorateElement(_init, 5, "foo", _foo_dec, _Foo);
+var Foo = _Foo;
+
+---------- /out/derived-instance-method.js ----------
+// derived-instance-method.js
+var _foo_dec, _a, _init;
+var _Foo = class _Foo extends (_a = Bar, _foo_dec = [dec], _a) {
+  constructor() {
+    super(...arguments);
+    __runInitializers(_init, 5, this);
+  }
+  foo() {
+    return _Foo;
+  }
+};
+_init = __decoratorStart(_a);
+__decorateElement(_init, 1, "foo", _foo_dec, _Foo);
+var Foo = _Foo;
+
+---------- /out/derived-static-accessor.js ----------
+// derived-static-accessor.js
+var _foo_dec, _a, _init, _foo;
+var _Foo = class _Foo extends (_a = Bar, _foo_dec = [dec], _a) {
+};
+_init = __decoratorStart(_a);
+_foo = new WeakMap();
+__decorateElement(_init, 12, "foo", _foo_dec, _Foo, _foo);
+__privateAdd(_Foo, _foo, __runInitializers(_init, 8, _Foo, _Foo)), __runInitializers(_init, 11, _Foo);
+var Foo = _Foo;
+
+---------- /out/derived-static-field.js ----------
+// derived-static-field.js
+var _foo_dec, _a, _init;
+var _Foo = class _Foo extends (_a = Bar, _foo_dec = [dec], _a) {
+};
+_init = __decoratorStart(_a);
+__decorateElement(_init, 13, "foo", _foo_dec, _Foo);
+__publicField(_Foo, "foo", __runInitializers(_init, 8, _Foo, _Foo)), __runInitializers(_init, 11, _Foo);
+var Foo = _Foo;
+
+---------- /out/derived-static-method.js ----------
+// derived-static-method.js
+var _foo_dec, _a, _init;
+var _Foo = class _Foo extends (_a = Bar, _foo_dec = [dec], _a) {
+  static foo() {
+    return _Foo;
+  }
+};
+_init = __decoratorStart(_a);
+__decorateElement(_init, 9, "foo", _foo_dec, _Foo);
+__runInitializers(_init, 3, _Foo);
+var Foo = _Foo;
 
 ================================================================================
 TestJavaScriptDecoratorsESNext
@@ -1603,22 +1763,22 @@ class Derived2 extends Base {
   constructor() {
     super(...arguments);
     __publicField(this, "b", () => __async(this, null, function* () {
-      var _a, _b;
-      return _b = class {
+      var _a;
+      return _a = __superGet(Derived2.prototype, this, "foo"), class {
         constructor() {
           __publicField(this, _a, 123);
         }
-      }, _a = __superGet(Derived2.prototype, this, "foo"), _b;
+      };
     }));
   }
   a() {
     return __async(this, null, function* () {
-      var _a, _b;
-      return _b = class {
+      var _a;
+      return _a = __superGet(Derived2.prototype, this, "foo"), class {
         constructor() {
           __publicField(this, _a, 123);
         }
-      }, _a = __superGet(Derived2.prototype, this, "foo"), _b;
+      };
     });
   }
 }
@@ -1691,21 +1851,21 @@ class Derived2 extends Base {
   constructor() {
     super(...arguments);
     __publicField(this, "b", async () => {
-      var _a, _b;
-      return _b = class {
+      var _a;
+      return _a = super.foo, class {
         constructor() {
           __publicField(this, _a, 123);
         }
-      }, _a = super.foo, _b;
+      };
     });
   }
   async a() {
-    var _a, _b;
-    return _b = class {
+    var _a;
+    return _a = super.foo, class {
       constructor() {
         __publicField(this, _a, 123);
       }
-    }, _a = super.foo, _b;
+    };
   }
 }
 for (let i = 0; i < 3; i++) {
@@ -1900,6 +2060,40 @@ export default [
           throw error[0];
       }
     }
+  }),
+  () => __async(void 0, null, function* () {
+    try {
+      label: for (var iter = __forAwait(y), more, temp, error; more = !(temp = yield iter.next()).done; more = false) {
+        const x2 = temp.value;
+        break label;
+      }
+    } catch (temp) {
+      error = [temp];
+    } finally {
+      try {
+        more && (temp = iter.return) && (yield temp.call(iter));
+      } finally {
+        if (error)
+          throw error[0];
+      }
+    }
+  }),
+  () => __async(void 0, null, function* () {
+    try {
+      label: for (var iter = __forAwait(y), more, temp, error; more = !(temp = yield iter.next()).done; more = false) {
+        const x2 = temp.value;
+        continue label;
+      }
+    } catch (temp) {
+      error = [temp];
+    } finally {
+      try {
+        more && (temp = iter.return) && (yield temp.call(iter));
+      } finally {
+        if (error)
+          throw error[0];
+      }
+    }
   })
 ];
 
@@ -1963,6 +2157,40 @@ export default [
       for (var iter = __forAwait(y), more, temp, error; more = !(temp = await iter.next()).done; more = false) {
         const x2 = temp.value;
         z(x2);
+      }
+    } catch (temp) {
+      error = [temp];
+    } finally {
+      try {
+        more && (temp = iter.return) && await temp.call(iter);
+      } finally {
+        if (error)
+          throw error[0];
+      }
+    }
+  },
+  async () => {
+    try {
+      label: for (var iter = __forAwait(y), more, temp, error; more = !(temp = await iter.next()).done; more = false) {
+        const x2 = temp.value;
+        break label;
+      }
+    } catch (temp) {
+      error = [temp];
+    } finally {
+      try {
+        more && (temp = iter.return) && await temp.call(iter);
+      } finally {
+        if (error)
+          throw error[0];
+      }
+    }
+  },
+  async () => {
+    try {
+      label: for (var iter = __forAwait(y), more, temp, error; more = !(temp = await iter.next()).done; more = false) {
+        const x2 = temp.value;
+        continue label;
       }
     } catch (temp) {
       error = [temp];
@@ -2138,20 +2366,20 @@ _foo = new WeakMap();
 ================================================================================
 TestLowerPrivateClassExpr2020NoBundle
 ---------- /out.js ----------
-var _field, _instances, method_fn, _a, _staticField, _static, staticMethod_fn;
+var _field, _Foo_instances, method_fn, _a, _staticField, _Foo_static, staticMethod_fn;
 export let Foo = (_a = class {
   constructor() {
-    __privateAdd(this, _instances);
+    __privateAdd(this, _Foo_instances);
     __privateAdd(this, _field);
   }
   foo() {
     var _a2;
-    __privateSet(this, _field, __privateMethod(this, _instances, method_fn).call(this));
-    __privateSet(Foo, _staticField, __privateMethod(_a2 = Foo, _static, staticMethod_fn).call(_a2));
+    __privateSet(this, _field, __privateMethod(this, _Foo_instances, method_fn).call(this));
+    __privateSet(Foo, _staticField, __privateMethod(_a2 = Foo, _Foo_static, staticMethod_fn).call(_a2));
   }
-}, _field = new WeakMap(), _instances = new WeakSet(), method_fn = function() {
-}, _staticField = new WeakMap(), _static = new WeakSet(), staticMethod_fn = function() {
-}, __privateAdd(_a, _static), __privateAdd(_a, _staticField), _a);
+}, _field = new WeakMap(), _Foo_instances = new WeakSet(), method_fn = function() {
+}, _staticField = new WeakMap(), _Foo_static = new WeakSet(), staticMethod_fn = function() {
+}, __privateAdd(_a, _Foo_static), __privateAdd(_a, _staticField), _a);
 
 ================================================================================
 TestLowerPrivateClassFieldOrder
@@ -3334,22 +3562,22 @@ let fn = () => __async(this, null, function* () {
 const _Derived2 = class _Derived2 extends Base {
   static a() {
     return __async(this, null, function* () {
-      var _a, _b;
-      return _b = class {
+      var _a;
+      return _a = __superGet(_Derived2, this, "foo"), class {
         constructor() {
           __publicField(this, _a, 123);
         }
-      }, _a = __superGet(_Derived2, this, "foo"), _b;
+      };
     });
   }
 };
 __publicField(_Derived2, "b", () => __async(_Derived2, null, function* () {
-  var _a, _b;
-  return _b = class {
+  var _a;
+  return _a = __superGet(_Derived2, _Derived2, "foo"), class {
     constructor() {
       __publicField(this, _a, 123);
     }
-  }, _a = __superGet(_Derived2, _Derived2, "foo"), _b;
+  };
 }));
 let Derived2 = _Derived2;
 
@@ -3402,21 +3630,21 @@ let fn = async () => {
 };
 const _Derived2 = class _Derived2 extends Base {
   static async a() {
-    var _a, _b;
-    return _b = class {
+    var _a;
+    return _a = super.foo, class {
       constructor() {
         __publicField(this, _a, 123);
       }
-    }, _a = super.foo, _b;
+    };
   }
 };
 __publicField(_Derived2, "b", async () => {
-  var _a, _b;
-  return _b = class {
+  var _a;
+  return _a = __superGet(_Derived2, _Derived2, "foo"), class {
     constructor() {
       __publicField(this, _a, 123);
     }
-  }, _a = __superGet(_Derived2, _Derived2, "foo"), _b;
+  };
 });
 let Derived2 = _Derived2;
 
@@ -3501,13 +3729,11 @@ TestLowerStrictModeSyntax
 // for-in.js
 if (test) {
   a = b;
-  for (a in {})
-    ;
+  for (a in {}) ;
 }
 var a;
 x = y;
-for (x in {})
-  ;
+for (x in {}) ;
 var x;
 
 ================================================================================
@@ -4238,20 +4464,16 @@ function bar() {
 }
 
 ---------- /out/loops.js ----------
-for (using a of b)
-  c(() => a);
+for (using a of b) c(() => a);
 if (nested) {
-  for (using a of b)
-    c(() => a);
+  for (using a of b) c(() => a);
 }
 function foo() {
-  for (using a of b)
-    c(() => a);
+  for (using a of b) c(() => a);
 }
 function bar() {
   return __async(this, null, function* () {
-    for (using a of b)
-      c(() => a);
+    for (using a of b) c(() => a);
     for (var _d of e) {
       var _stack = [];
       try {
@@ -4647,8 +4869,7 @@ assign = __objRest({}, []);
   var x2 = __objRest(_s, []);
 } });
 x = __objRest(x, []);
-for (x = __objRest(x, []); 0; )
-  ;
+for (x = __objRest(x, []); 0; ) ;
 console.log((x = __objRest(_t = x, []), _t));
 console.log((_v = _u = { x }, { x } = _v, xx = __objRest(_v, ["x"]), _u));
 console.log(({ x: _x } = _w = { x }, xx = __objRest(_x, []), _w));
@@ -4684,14 +4905,10 @@ for (const { ...for_in_const } in { abc }) {
 }
 for (let { ...for_in_let } in { abc }) {
 }
-for (var { ...for_in_var } in { abc })
-  ;
-for (const { ...for_of_const } of [{}])
-  ;
-for (let { ...for_of_let } of [{}])
-  x();
-for (var { ...for_of_var } of [{}])
-  x();
+for (var { ...for_in_var } in { abc }) ;
+for (const { ...for_of_const } of [{}]) ;
+for (let { ...for_of_let } of [{}]) x();
+for (var { ...for_of_var } of [{}]) x();
 for (const { ...for_const } = {}; x; x = null) {
 }
 for (let { ...for_let } = {}; x; x = null) {
@@ -4708,8 +4925,7 @@ for ({ ...x } = {}; x; x = null) {
 ({ obj_method({ ...x2 }) {
 } });
 ({ ...x } = x);
-for ({ ...x } = x; 0; )
-  ;
+for ({ ...x } = x; 0; ) ;
 console.log({ ...x } = x);
 console.log({ x, ...xx } = { x });
 console.log({ x: { ...xx } } = { x });
