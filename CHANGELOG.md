@@ -2,6 +2,279 @@
 
 ## Unreleased
 
+* Allow automatic semicolon insertion after `get`/`set`
+
+    This change fixes a grammar bug in the parser that incorrectly treated the following code as a syntax error:
+
+    ```ts
+    class Foo {
+      get
+      *x() {}
+      set
+      *y() {}
+    }
+    ```
+
+    The above code will be considered valid starting with this release. This change to esbuild follows a [similar change to TypeScript](https://github.com/microsoft/TypeScript/pull/60225) which will allow this syntax starting with TypeScript 5.7.
+
+## 0.24.0
+
+**_This release deliberately contains backwards-incompatible changes._** To avoid automatically picking up releases like this, you should either be pinning the exact version of `esbuild` in your `package.json` file (recommended) or be using a version range syntax that only accepts patch upgrades such as `^0.23.0` or `~0.23.0`. See npm's documentation about [semver](https://docs.npmjs.com/cli/v6/using-npm/semver/) for more information.
+
+* Drop support for older platforms ([#3902](https://github.com/evanw/esbuild/pull/3902))
+
+    This release drops support for the following operating system:
+
+    * macOS 10.15 Catalina
+
+    This is because the Go programming language dropped support for this operating system version in Go 1.23, and this release updates esbuild from Go 1.22 to Go 1.23. Go 1.23 now requires macOS 11 Big Sur or later.
+
+    Note that this only affects the binary esbuild executables that are published to the esbuild npm package. It's still possible to compile esbuild's source code for these older operating systems. If you need to, you can compile esbuild for yourself using an older version of the Go compiler (before Go version 1.23). That might look something like this:
+
+    ```
+    git clone https://github.com/evanw/esbuild.git
+    cd esbuild
+    go build ./cmd/esbuild
+    ./esbuild --version
+    ```
+
+* Fix class field decorators in TypeScript if `useDefineForClassFields` is `false` ([#3913](https://github.com/evanw/esbuild/issues/3913))
+
+    Setting the `useDefineForClassFields` flag to `false` in `tsconfig.json` means class fields use the legacy TypeScript behavior instead of the standard JavaScript behavior. Specifically they use assign semantics instead of define semantics (e.g. setters are triggered) and fields without an initializer are not initialized at all. However, when this legacy behavior is combined with standard JavaScript decorators, TypeScript switches to always initializing all fields, even those without initializers. Previously esbuild incorrectly continued to omit field initializers for this edge case. These field initializers in this case should now be emitted starting with this release.
+
+* Avoid incorrect cycle warning with `tsconfig.json` multiple inheritance ([#3898](https://github.com/evanw/esbuild/issues/3898))
+
+    TypeScript 5.0 introduced multiple inheritance for `tsconfig.json` files where `extends` can be an array of file paths. Previously esbuild would incorrectly treat files encountered more than once when processing separate subtrees of the multiple inheritance hierarchy as an inheritance cycle. With this release, `tsconfig.json` files containing this edge case should work correctly without generating a warning.
+
+* Handle Yarn Plug'n'Play stack overflow with `tsconfig.json` ([#3915](https://github.com/evanw/esbuild/issues/3915))
+
+    Previously a `tsconfig.json` file that `extends` another file in a package with an `exports` map could cause a stack overflow when Yarn's Plug'n'Play resolution was active. This edge case should work now starting with this release.
+
+* Work around more issues with Deno 1.31+ ([#3917](https://github.com/evanw/esbuild/pull/3917))
+
+    This version of Deno broke the `stdin` and `stdout` properties on command objects for inherited streams, which matters when you run esbuild's Deno module as the entry point (i.e. when `import.meta.main` is `true`). Previously esbuild would crash in Deno 1.31+ if you ran esbuild like that. This should be fixed starting with this release.
+
+    This fix was contributed by [@Joshix-1](https://github.com/Joshix-1).
+
+## 0.23.1
+
+* Allow using the `node:` import prefix with `es*` targets ([#3821](https://github.com/evanw/esbuild/issues/3821))
+
+    The [`node:` prefix on imports](https://nodejs.org/api/esm.html#node-imports) is an alternate way to import built-in node modules. For example, `import fs from "fs"` can also be written `import fs from "node:fs"`. This only works with certain newer versions of node, so esbuild removes it when you target older versions of node such as with `--target=node14` so that your code still works. With the way esbuild's platform-specific feature compatibility table works, this was added by saying that only newer versions of node support this feature. However, that means that a target such as `--target=node18,es2022` removes the `node:` prefix because none of the `es*` targets are known to support this feature. This release adds the support for the `node:` flag to esbuild's internal compatibility table for `es*` to allow you to use compound targets like this:
+
+    ```js
+    // Original code
+    import fs from 'node:fs'
+    fs.open
+
+    // Old output (with --bundle --format=esm --platform=node --target=node18,es2022)
+    import fs from "fs";
+    fs.open;
+
+    // New output (with --bundle --format=esm --platform=node --target=node18,es2022)
+    import fs from "node:fs";
+    fs.open;
+    ```
+
+* Fix a panic when using the CLI with invalid build flags if `--analyze` is present ([#3834](https://github.com/evanw/esbuild/issues/3834))
+
+    Previously esbuild's CLI could crash if it was invoked with flags that aren't valid for a "build" API call and the `--analyze` flag is present. This was caused by esbuild's internals attempting to add a Go plugin (which is how `--analyze` is implemented) to a null build object. The panic has been fixed in this release.
+
+* Fix incorrect location of certain error messages ([#3845](https://github.com/evanw/esbuild/issues/3845))
+
+    This release fixes a regression that caused certain errors relating to variable declarations to be reported at an incorrect location. The regression was introduced in version 0.18.7 of esbuild.
+
+* Print comments before case clauses in switch statements ([#3838](https://github.com/evanw/esbuild/issues/3838))
+
+    With this release, esbuild will attempt to print comments that come before case clauses in switch statements. This is similar to what esbuild already does for comments inside of certain types of expressions. Note that these types of comments are not printed if minification is enabled (specifically whitespace minification).
+
+* Fix a memory leak with `pluginData` ([#3825](https://github.com/evanw/esbuild/issues/3825))
+
+    With this release, the build context's internal `pluginData` cache will now be cleared when starting a new build. This should fix a leak of memory from plugins that return `pluginData` objects from `onResolve` and/or `onLoad` callbacks.
+
+## 0.23.0
+
+**_This release deliberately contains backwards-incompatible changes._** To avoid automatically picking up releases like this, you should either be pinning the exact version of `esbuild` in your `package.json` file (recommended) or be using a version range syntax that only accepts patch upgrades such as `^0.22.0` or `~0.22.0`. See npm's documentation about [semver](https://docs.npmjs.com/cli/v6/using-npm/semver/) for more information.
+
+* Revert the recent change to avoid bundling dependencies for node ([#3819](https://github.com/evanw/esbuild/issues/3819))
+
+    This release reverts the recent change in version 0.22.0 that made `--packages=external` the default behavior with `--platform=node`.  The default is now back to `--packages=bundle`.
+
+    I've just been made aware that Amazon doesn't pin their dependencies in their "AWS CDK" product, which means that whenever esbuild publishes a new release, many people (potentially everyone?) using their SDK around the world instantly starts using it without Amazon checking that it works first. This change in version 0.22.0 happened to break their SDK. I'm amazed that things haven't broken before this point. This revert attempts to avoid these problems for Amazon's customers. Hopefully Amazon will pin their dependencies in the future.
+
+    In addition, this is probably a sign that esbuild is used widely enough that it now needs to switch to a more complicated release model. I may have esbuild use a beta channel model for further development.
+
+* Fix preserving collapsed JSX whitespace ([#3818](https://github.com/evanw/esbuild/issues/3818))
+
+    When transformed, certain whitespace inside JSX elements is ignored completely if it collapses to an empty string. However, the whitespace should only be ignored if the JSX is being transformed, not if it's being preserved. This release fixes a bug where esbuild was previously incorrectly ignoring collapsed whitespace with `--jsx=preserve`. Here is an example:
+
+    ```jsx
+    // Original code
+    <Foo>
+      <Bar />
+    </Foo>
+
+    // Old output (with --jsx=preserve)
+    <Foo><Bar /></Foo>;
+
+    // New output (with --jsx=preserve)
+    <Foo>
+      <Bar />
+    </Foo>;
+    ```
+
+## 0.22.0
+
+**This release deliberately contains backwards-incompatible changes.** To avoid automatically picking up releases like this, you should either be pinning the exact version of `esbuild` in your `package.json` file (recommended) or be using a version range syntax that only accepts patch upgrades such as `^0.21.0` or `~0.21.0`. See npm's documentation about [semver](https://docs.npmjs.com/cli/v6/using-npm/semver/) for more information.
+
+* Omit packages from bundles by default when targeting node ([#1874](https://github.com/evanw/esbuild/issues/1874), [#2830](https://github.com/evanw/esbuild/issues/2830), [#2846](https://github.com/evanw/esbuild/issues/2846), [#2915](https://github.com/evanw/esbuild/issues/2915), [#3145](https://github.com/evanw/esbuild/issues/3145), [#3294](https://github.com/evanw/esbuild/issues/3294), [#3323](https://github.com/evanw/esbuild/issues/3323), [#3582](https://github.com/evanw/esbuild/issues/3582), [#3809](https://github.com/evanw/esbuild/issues/3809), [#3815](https://github.com/evanw/esbuild/issues/3815))
+
+    This breaking change is an experiment. People are commonly confused when using esbuild to bundle code for node (i.e. for `--platform=node`) because some packages may not be intended for bundlers, and may use node-specific features that don't work with a bundler. Even though esbuild's "getting started" instructions say to use `--packages=external` to work around this problem, many people don't read the documentation and don't do this, and are then confused when it doesn't work. So arguably this is a bad default behavior for esbuild to have if people keep tripping over this.
+
+    With this release, esbuild will now omit packages from the bundle by default when the platform is `node` (i.e. the previous behavior of `--packages=external` is now the default in this case). _Note that your dependencies must now be present on the file system when your bundle is run._ If you don't want this behavior, you can do `--packages=bundle` to allow packages to be included in the bundle (i.e. the previous default behavior). Note that `--packages=bundle` doesn't mean all packages are bundled, just that packages are allowed to be bundled. You can still exclude individual packages from the bundle using `--external:` even when `--packages=bundle` is present.
+
+    The `--packages=` setting considers all import paths that "look like" package imports in the original source code to be package imports. Specifically import paths that don't start with a path segment of `/` or `.` or `..` are considered to be package imports. The only two exceptions to this rule are [subpath imports](https://nodejs.org/api/packages.html#subpath-imports) (which start with a `#` character) and TypeScript path remappings via `paths` and/or `baseUrl` in `tsconfig.json` (which are applied first).
+
+* Drop support for older platforms ([#3802](https://github.com/evanw/esbuild/issues/3802))
+
+    This release drops support for the following operating systems:
+
+    * Windows 7
+    * Windows 8
+    * Windows Server 2008
+    * Windows Server 2012
+
+    This is because the Go programming language dropped support for these operating system versions in [Go 1.21](https://go.dev/doc/go1.21#windows), and this release updates esbuild from Go 1.20 to Go 1.22.
+
+    Note that this only affects the binary esbuild executables that are published to the `esbuild` npm package. It's still possible to compile esbuild's source code for these older operating systems. If you need to, you can compile esbuild for yourself using an older version of the Go compiler (before Go version 1.21). That might look something like this:
+
+    ```
+    git clone https://github.com/evanw/esbuild.git
+    cd esbuild
+    go build ./cmd/esbuild
+    ./esbuild.exe --version
+    ```
+
+    In addition, this release increases the minimum required node version for esbuild's JavaScript API from node 12 to node 18. Node 18 is the oldest version of node that is still being supported (see node's [release schedule](https://nodejs.org/en/about/previous-releases) for more information). This increase is because of an incompatibility between the JavaScript that the Go compiler generates for the `esbuild-wasm` package and versions of node before node 17.4 (specifically the `crypto.getRandomValues` function).
+
+* Update `await using` behavior to match TypeScript
+
+    TypeScript 5.5 subtly changes the way `await using` behaves. This release updates esbuild to match these changes in TypeScript. You can read more about these changes in [microsoft/TypeScript#58624](https://github.com/microsoft/TypeScript/pull/58624).
+
+* Allow `es2024` as a target environment
+
+    The ECMAScript 2024 specification was just approved, so it has been added to esbuild as a possible compilation target. You can read more about the features that it adds here: [https://2ality.com/2024/06/ecmascript-2024.html](https://2ality.com/2024/06/ecmascript-2024.html). The only addition that's relevant for esbuild is the regular expression `/v` flag. With `--target=es2024`, regular expressions that use the `/v` flag will now be passed through untransformed instead of being transformed into a call to `new RegExp`.
+
+* Publish binaries for OpenBSD on 64-bit ARM ([#3665](https://github.com/evanw/esbuild/issues/3665), [#3674](https://github.com/evanw/esbuild/pull/3674))
+
+    With this release, you should now be able to install the `esbuild` npm package in OpenBSD on 64-bit ARM, such as on an Apple device with an M1 chip.
+
+    This was contributed by [@ikmckenz](https://github.com/ikmckenz).
+
+* Publish binaries for WASI (WebAssembly System Interface) preview 1 ([#3300](https://github.com/evanw/esbuild/issues/3300), [#3779](https://github.com/evanw/esbuild/pull/3779))
+
+    The upcoming WASI (WebAssembly System Interface) standard is going to be a way to run WebAssembly outside of a JavaScript host environment. In this scenario you only need a `.wasm` file without any supporting JavaScript code. Instead of JavaScript providing the APIs for the host environment, the WASI standard specifies a "system interface" that WebAssembly code can access directly (e.g. for file system access).
+
+    Development versions of the WASI specification are being released using preview numbers. The people behind WASI are currently working on preview 2 but the Go compiler has [released support for preview 1](https://go.dev/blog/wasi), which from what I understand is now considered an unsupported legacy release. However, some people have requested that esbuild publish binary executables that support WASI preview 1 so they can experiment with them.
+
+    This release publishes esbuild precompiled for WASI preview 1 to the `@esbuild/wasi-preview1` package on npm (specifically the file `@esbuild/wasi-preview1/esbuild.wasm`). This binary executable has not been tested and won't be officially supported, as it's for an old preview release of a specification that has since moved in another direction. If it works for you, great! If not, then you'll likely have to wait for the ecosystem to evolve before using esbuild with WASI. For example, it sounds like perhaps WASI preview 1 doesn't include support for opening network sockets so esbuild's local development server is unlikely to work with WASI preview 1.
+
+* Warn about `onResolve` plugins not setting a path ([#3790](https://github.com/evanw/esbuild/issues/3790))
+
+    Plugins that return values from `onResolve` without resolving the path (i.e. without setting either `path` or `external: true`) will now cause a warning. This is because esbuild only uses return values from `onResolve` if it successfully resolves the path, and it's not good for invalid input to be silently ignored.
+
+* Add a new Go API for running the CLI with plugins ([#3539](https://github.com/evanw/esbuild/pull/3539))
+
+    With esbuild's Go API, you can now call `cli.RunWithPlugins(args, plugins)` to pass an array of esbuild plugins to be used during the build process. This allows you to create a CLI that behaves similarly to esbuild's CLI but with additional Go plugins enabled.
+
+    This was contributed by [@edewit](https://github.com/edewit).
+
+## 0.21.5
+
+* Fix `Symbol.metadata` on classes without a class decorator ([#3781](https://github.com/evanw/esbuild/issues/3781))
+
+    This release fixes a bug with esbuild's support for the [decorator metadata proposal](https://github.com/tc39/proposal-decorator-metadata). Previously esbuild only added the `Symbol.metadata` property to decorated classes if there was a decorator on the class element itself. However, the proposal says that the `Symbol.metadata` property should be present on all classes that have any decorators at all, not just those with a decorator on the class element itself.
+
+* Allow unknown import attributes to be used with the `copy` loader ([#3792](https://github.com/evanw/esbuild/issues/3792))
+
+    Import attributes (the `with` keyword on `import` statements) are allowed to alter how that path is loaded. For example, esbuild cannot assume that it knows how to load `./bagel.js` as type `bagel`:
+
+    ```js
+    // This is an error with "--bundle" without also using "--external:./bagel.js"
+    import tasty from "./bagel.js" with { type: "bagel" }
+    ```
+
+    Because of that, bundling this code with esbuild is an error unless the file `./bagel.js` is external to the bundle (such as with `--bundle --external:./bagel.js`).
+
+    However, there is an additional case where it's ok for esbuild to allow this: if the file is loaded using the `copy` loader. That's because the `copy` loader behaves similarly to `--external` in that the file is left external to the bundle. The difference is that the `copy` loader copies the file into the output folder and rewrites the import path while `--external` doesn't. That means the following will now work with the `copy` loader (such as with `--bundle --loader:.bagel=copy`):
+
+    ```js
+    // This is no longer an error with "--bundle" and "--loader:.bagel=copy"
+    import tasty from "./tasty.bagel" with { type: "bagel" }
+    ```
+
+* Support import attributes with glob-style imports ([#3797](https://github.com/evanw/esbuild/issues/3797))
+
+    This release adds support for import attributes (the `with` option) to glob-style imports (dynamic imports with certain string literal patterns as paths). These imports previously didn't support import attributes due to an oversight. So code like this will now work correctly:
+
+    ```ts
+    async function loadLocale(locale: string): Locale {
+      const data = await import(`./locales/${locale}.data`, { with: { type: 'json' } })
+      return unpackLocale(locale, data)
+    }
+    ```
+
+    Previously this didn't work even though esbuild normally supports forcing the JSON loader using an import attribute. Attempting to do this used to result in the following error:
+
+    ```
+    ✘ [ERROR] No loader is configured for ".data" files: locales/en-US.data
+
+        example.ts:2:28:
+          2 │   const data = await import(`./locales/${locale}.data`, { with: { type: 'json' } })
+            ╵                             ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ```
+
+    In addition, this change means plugins can now access the contents of `with` for glob-style imports.
+
+* Support `${configDir}` in `tsconfig.json` files ([#3782](https://github.com/evanw/esbuild/issues/3782))
+
+    This adds support for a new feature from the upcoming TypeScript 5.5 release. The character sequence `${configDir}` is now respected at the start of `baseUrl` and `paths` values, which are used by esbuild during bundling to correctly map import paths to file system paths. This feature lets base `tsconfig.json` files specified via `extends` refer to the directory of the top-level `tsconfig.json` file. Here is an example:
+
+    ```json
+    {
+      "compilerOptions": {
+        "paths": {
+          "js/*": ["${configDir}/dist/js/*"]
+        }
+      }
+    }
+    ```
+
+    You can read more in [TypeScript's blog post about their upcoming 5.5 release](https://devblogs.microsoft.com/typescript/announcing-typescript-5-5-rc/#the-configdir-template-variable-for-configuration-files). Note that this feature does not make use of template literals (you need to use `"${configDir}/dist/js/*"` not `` `${configDir}/dist/js/*` ``). The syntax for `tsconfig.json` is still just JSON with comments, and JSON syntax does not allow template literals. This feature only recognizes `${configDir}` in strings for certain path-like properties, and only at the beginning of the string.
+
+* Fix internal error with `--supported:object-accessors=false` ([#3794](https://github.com/evanw/esbuild/issues/3794))
+
+    This release fixes a regression in 0.21.0 where some code that was added to esbuild's internal runtime library of helper functions for JavaScript decorators fails to parse when you configure esbuild with `--supported:object-accessors=false`. The reason is that esbuild introduced code that does `{ get [name]() {} }` which uses both the `object-extensions` feature for the `[name]` and the `object-accessors` feature for the `get`, but esbuild was incorrectly only checking for `object-extensions` and not for `object-accessors`. Additional tests have been added to avoid this type of issue in the future. A workaround for this issue in earlier releases is to also add `--supported:object-extensions=false`.
+
+## 0.21.4
+
+* Update support for import assertions and import attributes in node ([#3778](https://github.com/evanw/esbuild/issues/3778))
+
+    Import assertions (the `assert` keyword) have been removed from node starting in v22.0.0. So esbuild will now strip them and generate a warning with `--target=node22` or above:
+
+    ```
+    ▲ [WARNING] The "assert" keyword is not supported in the configured target environment ("node22") [assert-to-with]
+
+        example.mjs:1:40:
+          1 │ import json from "esbuild/package.json" assert { type: "json" }
+            │                                         ~~~~~~
+            ╵                                         with
+
+      Did you mean to use "with" instead of "assert"?
+    ```
+
+    Import attributes (the `with` keyword) have been backported to node 18 starting in v18.20.0. So esbuild will no longer strip them with `--target=node18.N` if `N` is 20 or greater.
+
 * Fix `for await` transform when a label is present
 
     This release fixes a bug where the `for await` transform, which wraps the loop in a `try` statement, previously failed to also move the loop's label into the `try` statement. This bug only affects code that uses both of these features in combination. Here's an example of some affected code:
@@ -59,6 +332,74 @@
       });
     }
     ```
+
+* Do additional constant folding after cross-module enum inlining ([#3416](https://github.com/evanw/esbuild/issues/3416), [#3425](https://github.com/evanw/esbuild/issues/3425))
+
+    This release adds a few more cases where esbuild does constant folding after cross-module enum inlining.
+
+    ```ts
+    // Original code: enum.ts
+    export enum Platform {
+      WINDOWS = 'windows',
+      MACOS = 'macos',
+      LINUX = 'linux',
+    }
+
+    // Original code: main.ts
+    import { Platform } from './enum';
+    declare const PLATFORM: string;
+    export function logPlatform() {
+      if (PLATFORM == Platform.WINDOWS) console.log('Windows');
+      else if (PLATFORM == Platform.MACOS) console.log('macOS');
+      else if (PLATFORM == Platform.LINUX) console.log('Linux');
+      else console.log('Other');
+    }
+
+    // Old output (with --bundle '--define:PLATFORM="macos"' --minify --format=esm)
+    function n(){"windows"=="macos"?console.log("Windows"):"macos"=="macos"?console.log("macOS"):"linux"=="macos"?console.log("Linux"):console.log("Other")}export{n as logPlatform};
+
+    // New output (with --bundle '--define:PLATFORM="macos"' --minify --format=esm)
+    function n(){console.log("macOS")}export{n as logPlatform};
+    ```
+
+* Pass import attributes to on-resolve plugins ([#3384](https://github.com/evanw/esbuild/issues/3384), [#3639](https://github.com/evanw/esbuild/issues/3639), [#3646](https://github.com/evanw/esbuild/issues/3646))
+
+    With this release, on-resolve plugins will now have access to the import attributes on the import via the `with` property of the arguments object. This mirrors the `with` property of the arguments object that's already passed to on-load plugins. In addition, you can now pass `with` to the `resolve()` API call which will then forward that value on to all relevant plugins. Here's an example of a plugin that can now be written:
+
+    ```js
+    const examplePlugin = {
+      name: 'Example plugin',
+      setup(build) {
+        build.onResolve({ filter: /.*/ }, args => {
+          if (args.with.type === 'external')
+            return { external: true }
+        })
+      }
+    }
+
+    require('esbuild').build({
+      stdin: {
+        contents: `
+          import foo from "./foo" with { type: "external" }
+          foo()
+        `,
+      },
+      bundle: true,
+      format: 'esm',
+      write: false,
+      plugins: [examplePlugin],
+    }).then(result => {
+      console.log(result.outputFiles[0].text)
+    })
+    ```
+
+* Formatting support for the `@position-try` rule ([#3773](https://github.com/evanw/esbuild/issues/3773))
+
+    Chrome shipped this new CSS at-rule in version 125 as part of the [CSS anchor positioning API](https://developer.chrome.com/blog/anchor-positioning-api). With this release, esbuild now knows to expect a declaration list inside of the `@position-try` body block and will format it appropriately.
+
+* Always allow internal string import and export aliases ([#3343](https://github.com/evanw/esbuild/issues/3343))
+
+    Import and export names can be string literals in ES2022+. Previously esbuild forbid any usage of these aliases when the target was below ES2022. Starting with this release, esbuild will only forbid such usage when the alias would otherwise end up in output as a string literal. String literal aliases that are only used internally in the bundle and are "compiled away" are no longer errors. This makes it possible to use string literal aliases with esbuild's `inject` feature even when the target is earlier than ES2022.
 
 ## 0.21.3
 

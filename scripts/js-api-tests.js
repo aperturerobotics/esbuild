@@ -3065,7 +3065,7 @@ import "after/alias";
         stdin: { contents: `import fs from 'node:fs'; import('node:fs'); fs()` },
         bundle: true,
         platform: 'node',
-        target,
+        target: target.split(','),
         format: 'esm',
         write: false,
       })
@@ -3079,6 +3079,7 @@ import "after/alias";
     assert.strictEqual(await tryTargetESM('node12.99'), `// <stdin>\nimport fs from "node:fs";\nimport("node:fs");\nfs();\n`)
     assert.strictEqual(await tryTargetESM('node12.20'), `// <stdin>\nimport fs from "node:fs";\nimport("node:fs");\nfs();\n`)
     assert.strictEqual(await tryTargetESM('node12.19'), `// <stdin>\nimport fs from "fs";\nPromise.resolve().then(() => __toESM(__require("fs")));\nfs();\n`)
+    assert.strictEqual(await tryTargetESM('node18,es6'), `// <stdin>\nimport fs from "node:fs";\nimport("node:fs");\nfs();\n`)
   },
 
   async nodeColonPrefixRequire({ esbuild }) {
@@ -3087,7 +3088,7 @@ import "after/alias";
         stdin: { contents: `require('node:fs'); require.resolve('node:fs')` },
         bundle: true,
         platform: 'node',
-        target,
+        target: target.split(','),
         format: 'cjs',
         write: false,
       })
@@ -3101,6 +3102,7 @@ import "after/alias";
     assert.strictEqual(await tryTargetESM('node14.99'), `// <stdin>\nrequire("node:fs");\nrequire.resolve("node:fs");\n`)
     assert.strictEqual(await tryTargetESM('node14.18'), `// <stdin>\nrequire("node:fs");\nrequire.resolve("node:fs");\n`)
     assert.strictEqual(await tryTargetESM('node14.17'), `// <stdin>\nrequire("fs");\nrequire.resolve("fs");\n`)
+    assert.strictEqual(await tryTargetESM('node18,es6'), `// <stdin>\nrequire("node:fs");\nrequire.resolve("node:fs");\n`)
   },
 
   async nodeColonPrefixImportTurnedIntoRequire({ esbuild }) {
@@ -3109,7 +3111,7 @@ import "after/alias";
         stdin: { contents: `import fs from 'node:fs'; import('node:fs'); fs()` },
         bundle: true,
         platform: 'node',
-        target,
+        target: target.split(','),
         format: 'cjs',
         write: false,
       })
@@ -3123,6 +3125,7 @@ import "after/alias";
     assert.strictEqual(await tryTargetESM('node14.99'), `// <stdin>\nvar import_node_fs = __toESM(require("node:fs"));\nimport("node:fs");\n(0, import_node_fs.default)();\n`)
     assert.strictEqual(await tryTargetESM('node14.18'), `// <stdin>\nvar import_node_fs = __toESM(require("node:fs"));\nimport("node:fs");\n(0, import_node_fs.default)();\n`)
     assert.strictEqual(await tryTargetESM('node14.17'), `// <stdin>\nvar import_node_fs = __toESM(require("fs"));\nimport("fs");\n(0, import_node_fs.default)();\n`)
+    assert.strictEqual(await tryTargetESM('node18,es6'), `// <stdin>\nvar import_node_fs = __toESM(require("node:fs"));\nimport("node:fs");\n(0, import_node_fs.default)();\n`)
   },
 
   async zipFile({ esbuild, testDir }) {
@@ -3734,6 +3737,62 @@ import "after/alias";
     assert.strictEqual(value.outputFiles[0].text, `(() => {
   // .yarn/cache/dep-zip/node_modules/dep/index.js
   success();
+})();
+`)
+  },
+
+  // https://github.com/evanw/esbuild/issues/3915
+  async yarnPnP_stackOverflow({ esbuild, testDir }) {
+    const entry = path.join(testDir, 'entry.jsx')
+
+    await writeFileAsync(entry, `console.log(<div />)`)
+    await writeFileAsync(path.join(testDir, 'tsconfig.json'), `{ "extends": "tsconfigs/config" }`)
+    await mkdirAsync(path.join(testDir, 'packages/tsconfigs/configs'), { recursive: true })
+    await writeFileAsync(path.join(testDir, 'packages/tsconfigs/package.json'), `{ "exports": { "./config": "./configs/tsconfig.json" } }`)
+    await writeFileAsync(path.join(testDir, 'packages/tsconfigs/configs/tsconfig.json'), `{ "compilerOptions": { "jsxFactory": "success" } }`)
+
+    await writeFileAsync(path.join(testDir, '.pnp.data.json'), `{
+      "packageRegistryData": [
+        [null, [
+          [null, {
+            "packageLocation": "./",
+            "packageDependencies": [
+              ["tsconfigs", "virtual:some-path"]
+            ],
+            "linkType": "SOFT"
+          }]
+        ]],
+        ["tsconfigs", [
+          ["virtual:some-path", {
+            "packageLocation": "./.yarn/__virtual__/tsconfigs-virtual-f56a53910e/1/packages/tsconfigs/",
+            "packageDependencies": [
+              ["tsconfigs", "virtual:some-path"]
+            ],
+            "packagePeers": [],
+            "linkType": "SOFT"
+          }],
+          ["workspace:packages/tsconfigs", {
+            "packageLocation": "./packages/tsconfigs/",
+            "packageDependencies": [
+              ["tsconfigs", "workspace:packages/tsconfigs"]
+            ],
+            "linkType": "SOFT"
+          }]
+        ]]
+      ]
+    }`)
+
+    const value = await esbuild.build({
+      entryPoints: [entry],
+      bundle: true,
+      write: false,
+      absWorkingDir: testDir,
+    })
+
+    assert.strictEqual(value.outputFiles.length, 1)
+    assert.strictEqual(value.outputFiles[0].text, `(() => {
+  // entry.jsx
+  console.log(/* @__PURE__ */ success("div", null));
 })();
 `)
   },
@@ -6824,7 +6883,7 @@ class Foo {
       check('es2021', `x2 = /y/d`, `x2 = new RegExp("y", "d");\n`),
 
       // RegExpSetNotation
-      check('esnext', `x1 = /[\\p{White_Space}&&\\p{ASCII}]/v`, `x1 = /[\\p{White_Space}&&\\p{ASCII}]/v;\n`),
+      check('es2024', `x1 = /[\\p{White_Space}&&\\p{ASCII}]/v`, `x1 = /[\\p{White_Space}&&\\p{ASCII}]/v;\n`),
       check('es2022', `x2 = /[\\p{White_Space}&&\\p{ASCII}]/v`, `x2 = new RegExp("[\\\\p{White_Space}&&\\\\p{ASCII}]", "v");\n`),
     ])
   },

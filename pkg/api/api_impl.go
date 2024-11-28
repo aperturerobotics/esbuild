@@ -216,6 +216,17 @@ func validateASCIIOnly(value Charset) bool {
 	}
 }
 
+func validateExternalPackages(value Packages) bool {
+	switch value {
+	case PackagesDefault, PackagesBundle:
+		return false
+	case PackagesExternal:
+		return true
+	default:
+		panic("Invalid packages")
+	}
+}
+
 func validateTreeShaking(value TreeShaking, bundle bool, format Format) bool {
 	switch value {
 	case TreeShakingDefault:
@@ -307,6 +318,8 @@ func validateFeatures(log logger.Log, target Target, engines []Engine) (compat.J
 		constraints[compat.ES] = compat.Semver{Parts: []int{2022}}
 	case ES2023:
 		constraints[compat.ES] = compat.Semver{Parts: []int{2023}}
+	case ES2024:
+		constraints[compat.ES] = compat.Semver{Parts: []int{2024}}
 	case ESNext, DefaultTarget:
 	default:
 		panic("Invalid target")
@@ -1271,7 +1284,7 @@ func validateBuildOptions(
 		ExtensionToLoader:     validateLoaders(log, buildOpts.Loader),
 		ExtensionOrder:        validateResolveExtensions(log, buildOpts.ResolveExtensions),
 		ExternalSettings:      validateExternals(log, realFS, buildOpts.External),
-		ExternalPackages:      buildOpts.Packages == PackagesExternal,
+		ExternalPackages:      validateExternalPackages(buildOpts.Packages),
 		PackageAliases:        validateAlias(log, realFS, buildOpts.Alias),
 		TSConfigPath:          validatePath(log, realFS, buildOpts.Tsconfig, "tsconfig path"),
 		TSConfigRaw:           buildOpts.TsconfigRaw,
@@ -1904,6 +1917,7 @@ func (impl *pluginImpl) onResolve(options OnResolveOptions, callback func(OnReso
 				ResolveDir: args.ResolveDir,
 				Kind:       importKindToResolveKind(args.Kind),
 				PluginData: args.PluginData,
+				With:       args.With.DecodeIntoMap(),
 			})
 			result.PluginName = response.PluginName
 			result.AbsWatchFiles = impl.validatePathsArray(response.WatchFiles, "watch file")
@@ -1930,6 +1944,33 @@ func (impl *pluginImpl) onResolve(options OnResolveOptions, callback func(OnReso
 
 			// Convert log messages
 			result.Msgs = convertErrorsAndWarningsToInternal(response.Errors, response.Warnings)
+
+			// Warn if the plugin returned things without resolving the path
+			if response.Path == "" && !response.External {
+				var what string
+				if response.Namespace != "" {
+					what = "namespace"
+				} else if response.Suffix != "" {
+					what = "suffix"
+				} else if response.PluginData != nil {
+					what = "pluginData"
+				} else if response.WatchFiles != nil {
+					what = "watchFiles"
+				} else if response.WatchDirs != nil {
+					what = "watchDirs"
+				}
+				if what != "" {
+					path := "path"
+					if logger.API == logger.GoAPI {
+						what = strings.Title(what)
+						path = strings.Title(path)
+					}
+					result.Msgs = append(result.Msgs, logger.Msg{
+						Kind: logger.Warning,
+						Data: logger.MsgData{Text: fmt.Sprintf("Returning %q doesn't do anything when %q is empty", what, path)},
+					})
+				}
+			}
 			return
 		},
 	})
@@ -1946,16 +1987,12 @@ func (impl *pluginImpl) onLoad(options OnLoadOptions, callback func(OnLoadArgs) 
 		Filter:    filter,
 		Namespace: options.Namespace,
 		Callback: func(args config.OnLoadArgs) (result config.OnLoadResult) {
-			with := make(map[string]string)
-			for _, attr := range args.Path.ImportAttributes.Decode() {
-				with[attr.Key] = attr.Value
-			}
 			response, err := callback(OnLoadArgs{
 				Path:       args.Path.Text,
 				Namespace:  args.Path.Namespace,
 				PluginData: args.PluginData,
 				Suffix:     args.Path.IgnoredSuffix,
-				With:       with,
+				With:       args.Path.ImportAttributes.DecodeIntoMap(),
 			})
 			result.PluginName = response.PluginName
 			result.AbsWatchFiles = impl.validatePathsArray(response.WatchFiles, "watch file")
@@ -2061,6 +2098,7 @@ func loadPlugins(initialOptions *BuildOptions, fs fs.FS, log logger.Log, caches 
 				logger.Range{}, // importPathRange
 				logger.Path{Text: options.Importer, Namespace: options.Namespace},
 				path,
+				logger.EncodeImportAttributes(options.With),
 				kind,
 				absResolveDir,
 				options.PluginData,
@@ -2341,11 +2379,11 @@ func analyzeMetafileImpl(metafile string, opts AnalyzeMetafileOptions) string {
 				third := "100.0%"
 
 				table = append(table, tableEntry{
-					first:      fmt.Sprintf("%s%s%s", colors.Bold, entry.name, colors.Reset),
+					first:      entry.name,
 					firstLen:   utf8.RuneCountInString(entry.name),
-					second:     fmt.Sprintf("%s%s%s", colors.Bold, second, colors.Reset),
+					second:     second,
 					secondLen:  len(second),
-					third:      fmt.Sprintf("%s%s%s", colors.Bold, third, colors.Reset),
+					third:      third,
 					thirdLen:   len(third),
 					isTopLevel: true,
 				})
@@ -2422,8 +2460,10 @@ func analyzeMetafileImpl(metafile string, opts AnalyzeMetafileOptions) string {
 			// Render the columns now that we know the widths
 			for _, entry := range table {
 				prefix := "\n"
+				color := colors.Bold
 				if !entry.isTopLevel {
 					prefix = ""
+					color = ""
 				}
 
 				// Import paths don't have second and third columns
@@ -2445,17 +2485,23 @@ func analyzeMetafileImpl(metafile string, opts AnalyzeMetafileOptions) string {
 					extraSpace = 1
 				}
 
-				sb.WriteString(fmt.Sprintf("%s  %s %s%s%s %s %s%s%s %s\n",
+				sb.WriteString(fmt.Sprintf("%s  %s%s%s %s%s%s %s%s%s %s%s%s %s%s%s\n",
 					prefix,
+					color,
 					entry.first,
+					colors.Reset,
 					colors.Dim,
 					strings.Repeat(lineChar, extraSpace+maxFirstLen-entry.firstLen+maxSecondLen-entry.secondLen),
 					colors.Reset,
+					color,
 					secondTrimmed,
+					colors.Reset,
 					colors.Dim,
 					strings.Repeat(lineChar, extraSpace+maxThirdLen-entry.thirdLen+len(second)-len(secondTrimmed)),
 					colors.Reset,
+					color,
 					entry.third,
+					colors.Reset,
 				))
 			}
 

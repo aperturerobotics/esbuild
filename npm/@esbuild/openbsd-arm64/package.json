@@ -1,7 +1,7 @@
 {
-  "name": "@esbuild/darwin-arm64",
+  "name": "@esbuild/openbsd-arm64",
   "version": "0.24.0",
-  "description": "The macOS ARM 64-bit binary for esbuild, a JavaScript bundler.",
+  "description": "The OpenBSD ARM 64-bit binary for esbuild, a JavaScript bundler.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/evanw/esbuild.git"
@@ -12,7 +12,7 @@
     "node": ">=18"
   },
   "os": [
-    "darwin"
+    "openbsd"
   ],
   "cpu": [
     "arm64"

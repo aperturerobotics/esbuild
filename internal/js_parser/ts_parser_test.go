@@ -820,6 +820,16 @@ func TestTSClass(t *testing.T) {
 	expectParseErrorTS(t, "class Foo { [foo]<T> }", "<stdin>: ERROR: Expected \"(\" but found \"}\"\n")
 	expectParseErrorTS(t, "class Foo { [foo]?<T> }", "<stdin>: ERROR: Expected \"(\" but found \"}\"\n")
 	expectParseErrorTS(t, "class Foo { [foo]!<T>() {} }", "<stdin>: ERROR: Expected \";\" but found \"<\"\n")
+
+	// See: https://github.com/microsoft/TypeScript/pull/60225
+	expectPrintedTS(t, "class A { get \n x() {} }", "class A {\n  get x() {\n  }\n}\n")
+	expectPrintedTS(t, "class A { set \n x(_) {} }", "class A {\n  set x(_) {\n  }\n}\n")
+	expectPrintedTS(t, "class A { get \n *x() {} }", "class A {\n  get;\n  *x() {\n  }\n}\n")
+	expectPrintedTS(t, "class A { set \n *x(_) {} }", "class A {\n  set;\n  *x(_) {\n  }\n}\n")
+	expectParseErrorTS(t, "class A { get \n async x() {} }", "<stdin>: ERROR: Expected \"(\" but found \"x\"\n")
+	expectParseErrorTS(t, "class A { set \n async x(_) {} }", "<stdin>: ERROR: Expected \"(\" but found \"x\"\n")
+	expectParseErrorTS(t, "class A { async get \n *x() {} }", "<stdin>: ERROR: Expected \"(\" but found \"*\"\n")
+	expectParseErrorTS(t, "class A { async set \n *x(_) {} }", "<stdin>: ERROR: Expected \"(\" but found \"*\"\n")
 }
 
 func TestTSAutoAccessors(t *testing.T) {
@@ -2136,6 +2146,7 @@ class Foo {
 }
 _init = __decoratorStart(null);
 __decorateElement(_init, 5, "x", _x_dec, Foo);
+__decoratorMetadata(_init, Foo);
 `)
 	expectPrintedWithUnsupportedFeaturesTS(t, compat.Decorators, "class Foo { @dec x() {} }",
 		`var _x_dec, _init;
@@ -2149,6 +2160,7 @@ class Foo {
 }
 _init = __decoratorStart(null);
 __decorateElement(_init, 1, "x", _x_dec, Foo);
+__decoratorMetadata(_init, Foo);
 `)
 	expectPrintedWithUnsupportedFeaturesTS(t, compat.Decorators, "class Foo { @dec accessor x }",
 		`var _x_dec, _init, _x;
@@ -2161,6 +2173,7 @@ class Foo {
 _init = __decoratorStart(null);
 _x = new WeakMap();
 __decorateElement(_init, 4, "x", _x_dec, Foo, _x);
+__decoratorMetadata(_init, Foo);
 `)
 	expectPrintedWithUnsupportedFeaturesTS(t, compat.Decorators, "class Foo { @dec static x }",
 		`var _x_dec, _init;
@@ -2169,6 +2182,7 @@ class Foo {
 }
 _init = __decoratorStart(null);
 __decorateElement(_init, 13, "x", _x_dec, Foo);
+__decoratorMetadata(_init, Foo);
 __publicField(Foo, "x", __runInitializers(_init, 8, Foo)), __runInitializers(_init, 11, Foo);
 `)
 	expectPrintedWithUnsupportedFeaturesTS(t, compat.Decorators, "class Foo { @dec static x() {} }",
@@ -2180,6 +2194,7 @@ class Foo {
 }
 _init = __decoratorStart(null);
 __decorateElement(_init, 9, "x", _x_dec, Foo);
+__decoratorMetadata(_init, Foo);
 __runInitializers(_init, 3, Foo);
 `)
 	expectPrintedWithUnsupportedFeaturesTS(t, compat.Decorators, "class Foo { @dec static accessor x }",
@@ -2190,6 +2205,7 @@ class Foo {
 _init = __decoratorStart(null);
 _x = new WeakMap();
 __decorateElement(_init, 12, "x", _x_dec, Foo, _x);
+__decoratorMetadata(_init, Foo);
 __privateAdd(Foo, _x, __runInitializers(_init, 8, Foo)), __runInitializers(_init, 11, Foo);
 `)
 

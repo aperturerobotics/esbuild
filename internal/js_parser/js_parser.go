@@ -1605,7 +1605,7 @@ func (p *parser) hoistSymbols(scope *js_ast.Scope) {
 func (p *parser) declareBinding(kind ast.SymbolKind, binding js_ast.Binding, opts parseStmtOpts) {
 	js_ast.ForEachIdentifierBinding(binding, func(loc logger.Loc, b *js_ast.BIdentifier) {
 		if !opts.isTypeScriptDeclare || (opts.isNamespaceScope && opts.isExport) {
-			b.Ref = p.declareSymbol(kind, binding.Loc, p.loadNameFromRef(b.Ref))
+			b.Ref = p.declareSymbol(kind, loc, p.loadNameFromRef(b.Ref))
 		}
 	})
 }
@@ -2136,47 +2136,50 @@ func (p *parser) parseProperty(startLoc logger.Loc, kind js_ast.PropertyKind, op
 			couldBeModifierKeyword := p.lexer.IsIdentifierOrKeyword()
 			if !couldBeModifierKeyword {
 				switch p.lexer.Token {
-				case js_lexer.TOpenBracket, js_lexer.TNumericLiteral, js_lexer.TStringLiteral,
-					js_lexer.TAsterisk, js_lexer.TPrivateIdentifier:
+				case js_lexer.TOpenBracket, js_lexer.TNumericLiteral, js_lexer.TStringLiteral, js_lexer.TPrivateIdentifier:
 					couldBeModifierKeyword = true
+				case js_lexer.TAsterisk:
+					if opts.isAsync || (raw != "get" && raw != "set") {
+						couldBeModifierKeyword = true
+					}
 				}
 			}
 
 			// If so, check for a modifier keyword
 			if couldBeModifierKeyword {
-				switch name.String {
+				switch raw {
 				case "get":
-					if !opts.isAsync && raw == name.String {
+					if !opts.isAsync {
 						p.markSyntaxFeature(compat.ObjectAccessors, nameRange)
 						return p.parseProperty(startLoc, js_ast.PropertyGetter, opts, nil)
 					}
 
 				case "set":
-					if !opts.isAsync && raw == name.String {
+					if !opts.isAsync {
 						p.markSyntaxFeature(compat.ObjectAccessors, nameRange)
 						return p.parseProperty(startLoc, js_ast.PropertySetter, opts, nil)
 					}
 
 				case "accessor":
-					if !p.lexer.HasNewlineBefore && !opts.isAsync && opts.isClass && raw == name.String {
+					if !p.lexer.HasNewlineBefore && !opts.isAsync && opts.isClass {
 						return p.parseProperty(startLoc, js_ast.PropertyAutoAccessor, opts, nil)
 					}
 
 				case "async":
-					if !p.lexer.HasNewlineBefore && !opts.isAsync && raw == name.String {
+					if !p.lexer.HasNewlineBefore && !opts.isAsync {
 						opts.isAsync = true
 						opts.asyncRange = nameRange
 						return p.parseProperty(startLoc, js_ast.PropertyMethod, opts, nil)
 					}
 
 				case "static":
-					if !opts.isStatic && !opts.isAsync && opts.isClass && raw == name.String {
+					if !opts.isStatic && !opts.isAsync && opts.isClass {
 						opts.isStatic = true
 						return p.parseProperty(startLoc, kind, opts, nil)
 					}
 
 				case "declare":
-					if !p.lexer.HasNewlineBefore && opts.isClass && p.options.ts.Parse && opts.tsDeclareRange.Len == 0 && raw == name.String {
+					if !p.lexer.HasNewlineBefore && opts.isClass && p.options.ts.Parse && opts.tsDeclareRange.Len == 0 {
 						opts.tsDeclareRange = nameRange
 						scopeIndex := len(p.scopesInOrder)
 
@@ -2213,7 +2216,7 @@ func (p *parser) parseProperty(startLoc logger.Loc, kind js_ast.PropertyKind, op
 					}
 
 				case "abstract":
-					if !p.lexer.HasNewlineBefore && opts.isClass && p.options.ts.Parse && !opts.isTSAbstract && raw == name.String {
+					if !p.lexer.HasNewlineBefore && opts.isClass && p.options.ts.Parse && !opts.isTSAbstract {
 						opts.isTSAbstract = true
 						scopeIndex := len(p.scopesInOrder)
 
@@ -2249,7 +2252,7 @@ func (p *parser) parseProperty(startLoc logger.Loc, kind js_ast.PropertyKind, op
 
 				case "private", "protected", "public", "readonly", "override":
 					// Skip over TypeScript keywords
-					if opts.isClass && p.options.ts.Parse && raw == name.String {
+					if opts.isClass && p.options.ts.Parse {
 						return p.parseProperty(startLoc, kind, opts, nil)
 					}
 				}
@@ -5234,8 +5237,10 @@ func (p *parser) parseJSXElement(loc logger.Loc) js_ast.Expr {
 		case js_lexer.TStringLiteral:
 			if p.options.jsx.Preserve {
 				nullableChildren = append(nullableChildren, js_ast.Expr{Loc: p.lexer.Loc(), Data: &js_ast.EJSXText{Raw: p.lexer.Raw()}})
+			} else if str := p.lexer.StringLiteral(); len(str) > 0 {
+				nullableChildren = append(nullableChildren, js_ast.Expr{Loc: p.lexer.Loc(), Data: &js_ast.EString{Value: str}})
 			} else {
-				nullableChildren = append(nullableChildren, js_ast.Expr{Loc: p.lexer.Loc(), Data: &js_ast.EString{Value: p.lexer.StringLiteral()}})
+				// Skip this token if it turned out to be empty after trimming
 			}
 			p.lexer.NextJSXElementChild()
 
@@ -5484,8 +5489,6 @@ func (p *parser) parseClauseAlias(kind string) js_lexer.MaybeSubstring {
 		if !ok {
 			p.log.AddError(&p.tracker, r,
 				fmt.Sprintf("This %s alias is invalid because it contains the unpaired Unicode surrogate U+%X", kind, problem))
-		} else {
-			p.markSyntaxFeature(compat.ArbitraryModuleNamespaceNames, r)
 		}
 		return js_lexer.MaybeSubstring{String: alias}
 	}
@@ -6287,6 +6290,7 @@ func (p *parser) parseClass(classKeyword logger.Range, name *ast.LocRef, classOp
 	bodyLoc := p.lexer.Loc()
 	p.lexer.Expect(js_lexer.TOpenBrace)
 	properties := []js_ast.Property{}
+	hasPropertyDecorator := false
 
 	// Allow "in" and private fields inside class bodies
 	oldAllowIn := p.allowIn
@@ -6316,6 +6320,9 @@ func (p *parser) parseClass(classKeyword logger.Range, name *ast.LocRef, classOp
 		firstDecoratorLoc := p.lexer.Loc()
 		scopeIndex := len(p.scopesInOrder)
 		opts.decorators = p.parseDecorators(p.currentScope, classKeyword, opts.decoratorContext)
+		if len(opts.decorators) > 0 {
+			hasPropertyDecorator = true
+		}
 
 		// This property may turn out to be a type in TypeScript, which should be ignored
 		if property, ok := p.parseProperty(p.saveExprCommentsHere(), js_ast.PropertyField, opts, nil); ok {
@@ -6353,6 +6360,33 @@ func (p *parser) parseClass(classKeyword logger.Range, name *ast.LocRef, classOp
 
 	closeBraceLoc := p.saveExprCommentsHere()
 	p.lexer.Expect(js_lexer.TCloseBrace)
+
+	// TypeScript has legacy behavior that uses assignment semantics instead of
+	// define semantics for class fields when "useDefineForClassFields" is enabled
+	// (in which case TypeScript behaves differently than JavaScript, which is
+	// arguably "wrong").
+	//
+	// This legacy behavior exists because TypeScript added class fields to
+	// TypeScript before they were added to JavaScript. They decided to go with
+	// assignment semantics for whatever reason. Later on TC39 decided to go with
+	// define semantics for class fields instead. This behaves differently if the
+	// base class has a setter with the same name.
+	//
+	// The value of "useDefineForClassFields" defaults to false when it's not
+	// specified and the target is earlier than "ES2022" since the class field
+	// language feature was added in ES2022. However, TypeScript's "target"
+	// setting currently defaults to "ES3" which unfortunately means that the
+	// "useDefineForClassFields" setting defaults to false (i.e. to "wrong").
+	//
+	// We default "useDefineForClassFields" to true (i.e. to "correct") instead.
+	// This is partially because our target defaults to "esnext", and partially
+	// because this is a legacy behavior that no one should be using anymore.
+	// Users that want the wrong behavior can either set "useDefineForClassFields"
+	// to false in "tsconfig.json" explicitly, or set TypeScript's "target" to
+	// "ES2021" or earlier in their in "tsconfig.json" file.
+	useDefineForClassFields := !p.options.ts.Parse || p.options.ts.Config.UseDefineForClassFields == config.True ||
+		(p.options.ts.Config.UseDefineForClassFields == config.Unspecified && p.options.ts.Config.Target != config.TSTargetBelowES2022)
+
 	return js_ast.Class{
 		ClassKeyword:  classKeyword,
 		Decorators:    classOpts.decorators,
@@ -6362,31 +6396,16 @@ func (p *parser) parseClass(classKeyword logger.Range, name *ast.LocRef, classOp
 		Properties:    properties,
 		CloseBraceLoc: closeBraceLoc,
 
-		// TypeScript has legacy behavior that uses assignment semantics instead of
-		// define semantics for class fields when "useDefineForClassFields" is enabled
-		// (in which case TypeScript behaves differently than JavaScript, which is
-		// arguably "wrong").
-		//
-		// This legacy behavior exists because TypeScript added class fields to
-		// TypeScript before they were added to JavaScript. They decided to go with
-		// assignment semantics for whatever reason. Later on TC39 decided to go with
-		// define semantics for class fields instead. This behaves differently if the
-		// base class has a setter with the same name.
-		//
-		// The value of "useDefineForClassFields" defaults to false when it's not
-		// specified and the target is earlier than "ES2022" since the class field
-		// language feature was added in ES2022. However, TypeScript's "target"
-		// setting currently defaults to "ES3" which unfortunately means that the
-		// "useDefineForClassFields" setting defaults to false (i.e. to "wrong").
-		//
-		// We default "useDefineForClassFields" to true (i.e. to "correct") instead.
-		// This is partially because our target defaults to "esnext", and partially
-		// because this is a legacy behavior that no one should be using anymore.
-		// Users that want the wrong behavior can either set "useDefineForClassFields"
-		// to false in "tsconfig.json" explicitly, or set TypeScript's "target" to
-		// "ES2021" or earlier in their in "tsconfig.json" file.
-		UseDefineForClassFields: !p.options.ts.Parse || p.options.ts.Config.UseDefineForClassFields == config.True ||
-			(p.options.ts.Config.UseDefineForClassFields == config.Unspecified && p.options.ts.Config.Target != config.TSTargetBelowES2022),
+		// Always lower standard decorators if they are present and TypeScript's
+		// "useDefineForClassFields" setting is false even if the configured target
+		// environment supports decorators. This setting changes the behavior of
+		// class fields, and so we must lower decorators so they behave correctly.
+		ShouldLowerStandardDecorators: (len(classOpts.decorators) > 0 || hasPropertyDecorator) &&
+			((!p.options.ts.Parse && p.options.unsupportedJSFeatures.Has(compat.Decorators)) ||
+				(p.options.ts.Parse && p.options.ts.Config.ExperimentalDecorators != config.True &&
+					(p.options.unsupportedJSFeatures.Has(compat.Decorators) || !useDefineForClassFields))),
+
+		UseDefineForClassFields: useDefineForClassFields,
 	}
 }
 
@@ -6480,6 +6499,9 @@ func (p *parser) parsePath() (logger.Range, string, *ast.ImportAssertOrWith, ast
 
 		closeBraceLoc := p.saveExprCommentsHere()
 		p.lexer.Expect(js_lexer.TCloseBrace)
+		if keyword == ast.AssertKeyword {
+			p.maybeWarnAboutAssertKeyword(keywordLoc)
+		}
 		assertOrWith = &ast.ImportAssertOrWith{
 			Entries:            entries,
 			Keyword:            keyword,
@@ -6490,6 +6512,20 @@ func (p *parser) parsePath() (logger.Range, string, *ast.ImportAssertOrWith, ast
 	}
 
 	return pathRange, pathText, assertOrWith, flags
+}
+
+// Let people know if they probably should be using "with" instead of "assert"
+func (p *parser) maybeWarnAboutAssertKeyword(loc logger.Loc) {
+	if p.options.unsupportedJSFeatures.Has(compat.ImportAssertions) && !p.options.unsupportedJSFeatures.Has(compat.ImportAttributes) {
+		where := config.PrettyPrintTargetEnvironment(p.options.originalTargetEnv, p.options.unsupportedJSFeatureOverridesMask)
+		msg := logger.Msg{
+			Kind:  logger.Warning,
+			Data:  p.tracker.MsgData(js_lexer.RangeOfIdentifier(p.source, loc), "The \"assert\" keyword is not supported in "+where),
+			Notes: []logger.MsgData{{Text: "Did you mean to use \"with\" instead of \"assert\"?"}},
+		}
+		msg.Data.Location.Suggestion = "with"
+		p.log.AddMsgID(logger.MsgID_JS_AssertToWith, msg)
+	}
 }
 
 // This assumes the "function" token has already been parsed
@@ -7329,7 +7365,7 @@ func (p *parser) parseStmt(opts parseStmtOpts) js_ast.Stmt {
 		for p.lexer.Token != js_lexer.TCloseBrace {
 			var value js_ast.Expr
 			body := []js_ast.Stmt{}
-			caseLoc := p.lexer.Loc()
+			caseLoc := p.saveExprCommentsHere()
 
 			if p.lexer.Token == js_lexer.TDefault {
 				if foundDefault {
@@ -14277,6 +14313,9 @@ func (p *parser) visitExprInOut(expr js_ast.Expr, in exprIn) (js_ast.Expr, exprO
 									break
 								}
 								if entries != nil {
+									if keyword == ast.AssertKeyword {
+										p.maybeWarnAboutAssertKeyword(prop.Key.Loc)
+									}
 									assertOrWith = &ast.ImportAssertOrWith{
 										Entries:            entries,
 										Keyword:            keyword,
@@ -15299,8 +15338,8 @@ func (v *binaryExprVisitor) visitRightAndFinish(p *parser) js_ast.Expr {
 		}
 	}
 
-	if p.shouldFoldTypeScriptConstantExpressions || (p.options.minifySyntax && js_ast.ShouldFoldBinaryArithmeticWhenMinifying(e)) {
-		if result := js_ast.FoldBinaryArithmetic(v.loc, e); result.Data != nil {
+	if p.shouldFoldTypeScriptConstantExpressions || (p.options.minifySyntax && js_ast.ShouldFoldBinaryOperatorWhenMinifying(e)) {
+		if result := js_ast.FoldBinaryOperator(v.loc, e); result.Data != nil {
 			return result
 		}
 	}

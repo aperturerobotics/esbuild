@@ -392,6 +392,12 @@ import('./kangax').then(kangax => {
   js.ArbitraryModuleNamespaceNames.ES = { 2022: { force: true } }
   js.RegexpMatchIndices.ES = { 2022: { force: true } }
 
+  // ES2023 features
+  js.Hashbang.ES = { 2023: { force: true } }
+
+  // ES2024 features
+  js.RegexpSetNotation.ES = { 2024: { force: true } }
+
   // This is a problem specific to Internet Explorer. See https://github.com/tc39/ecma262/issues/1440
   for (const engine in engines) {
     if (engine as Engine !== 'ES' && engine as Engine !== 'IE') {
@@ -460,6 +466,8 @@ import('./kangax').then(kangax => {
     '15': { force: false },
     '16': { force: true },
   }
+  js.NodeColonPrefixImport.ES = { 0: { force: true } }
+  js.NodeColonPrefixRequire.ES = { 0: { force: true } }
 
   // Arbitrary Module Namespace Names
   {
@@ -477,12 +485,27 @@ import('./kangax').then(kangax => {
 
   // Import assertions (note: these were removed from the JavaScript specification and never standardized)
   {
-    // From https://github.com/nodejs/node/blob/master/doc/changelogs/CHANGELOG_V16.md#16.14.0
-    js.ImportAssertions.Node = { '16.14': { force: true } }
+    js.ImportAssertions.Node = {
+      // From https://github.com/nodejs/node/blob/master/doc/changelogs/CHANGELOG_V16.md#16.14.0
+      '16.14': { force: true },
+
+      // Manually tested using a binary from https://nodejs.org/en/download/prebuilt-binaries
+      '22': { force: false },
+    }
 
     // MDN data is wrong here: https://bugs.webkit.org/show_bug.cgi?id=251600
     delete js.ImportAssertions.IOS
     delete js.ImportAssertions.Safari
+  }
+
+  // Import attributes (the replacement for import assertions)
+  {
+    // Manually tested using binaries from https://nodejs.org/en/download/prebuilt-binaries
+    js.ImportAttributes.Node = {
+      '18.20': { force: true },
+      '19': { force: false },
+      '20.10': { force: true },
+    }
   }
 
   // MDN data is wrong here: https://www.chromestatus.com/feature/6482797915013120
@@ -500,6 +523,9 @@ mergeSupportMaps(css, caniuse.css)
 mergeSupportMaps(css, mdn.css)
 mergePrefixMaps(cssPrefix, caniuse.cssPrefix)
 mergePrefixMaps(cssPrefix, mdn.cssPrefix)
+
+// MDN data is wrong here, Firefox 127 still has gradient interpolation rendering bugs: https://bugzilla.mozilla.org/show_bug.cgi?id=1904106
+css.GradientInterpolation.Firefox = {}
 
 const [cssVersionRanges] = supportMapToVersionRanges(css)
 generateTableForCSS(cssVersionRanges, cssPrefix)

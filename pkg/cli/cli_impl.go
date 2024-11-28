@@ -613,12 +613,15 @@ func parseOptionsImpl(
 		case strings.HasPrefix(arg, "--packages=") && buildOpts != nil:
 			value := arg[len("--packages="):]
 			var packages api.Packages
-			if value == "external" {
+			switch value {
+			case "bundle":
+				packages = api.PackagesBundle
+			case "external":
 				packages = api.PackagesExternal
-			} else {
+			default:
 				return parseOptionsExtras{}, cli_helpers.MakeErrorWithNote(
 					fmt.Sprintf("Invalid value %q in %q", value, arg),
-					"The only valid value is \"external\".",
+					"Valid values are \"bundle\" or \"external\".",
 				)
 			}
 			buildOpts.Packages = packages
@@ -981,6 +984,7 @@ func parseTargets(targets []string, arg string) (target api.Target, engines []ap
 		"es2021": api.ES2021,
 		"es2022": api.ES2022,
 		"es2023": api.ES2023,
+		"es2024": api.ES2024,
 	}
 
 outer:
@@ -1019,11 +1023,15 @@ outer:
 	return
 }
 
+func isArgForBuild(arg string) bool {
+	return !strings.HasPrefix(arg, "-") || arg == "--bundle"
+}
+
 // This returns either BuildOptions, TransformOptions, or an error
 func parseOptionsForRun(osArgs []string) (*api.BuildOptions, *api.TransformOptions, parseOptionsExtras, *cli_helpers.ErrorWithNote) {
 	// If there's an entry point or we're bundling, then we're building
 	for _, arg := range osArgs {
-		if !strings.HasPrefix(arg, "-") || arg == "--bundle" {
+		if isArgForBuild(arg) {
 			options := newBuildOptions()
 
 			// Apply defaults appropriate for the CLI
@@ -1087,20 +1095,25 @@ const (
 )
 
 func filterAnalyzeFlags(osArgs []string) ([]string, analyzeMode) {
-	analyze := analyzeDisabled
-	end := 0
 	for _, arg := range osArgs {
-		switch arg {
-		case "--analyze":
-			analyze = analyzeEnabled
-		case "--analyze=verbose":
-			analyze = analyzeVerbose
-		default:
-			osArgs[end] = arg
-			end++
+		if isArgForBuild(arg) {
+			analyze := analyzeDisabled
+			end := 0
+			for _, arg := range osArgs {
+				switch arg {
+				case "--analyze":
+					analyze = analyzeEnabled
+				case "--analyze=verbose":
+					analyze = analyzeVerbose
+				default:
+					osArgs[end] = arg
+					end++
+				}
+			}
+			return osArgs[:end], analyze
 		}
 	}
-	return osArgs[:end], analyze
+	return osArgs, analyzeDisabled
 }
 
 // Print metafile analysis after the build if it's enabled
@@ -1128,7 +1141,7 @@ func addAnalyzePlugin(buildOptions *api.BuildOptions, analyze analyzeMode, osArg
 	buildOptions.Metafile = true
 }
 
-func runImpl(osArgs []string) int {
+func runImpl(osArgs []string, plugins []api.Plugin) int {
 	// Special-case running a server
 	for _, arg := range osArgs {
 		if arg == "--serve" ||
@@ -1142,8 +1155,15 @@ func runImpl(osArgs []string) int {
 
 	osArgs, analyze := filterAnalyzeFlags(osArgs)
 	buildOptions, transformOptions, extras, err := parseOptionsForRun(osArgs)
-	if analyze != analyzeDisabled {
-		addAnalyzePlugin(buildOptions, analyze, osArgs)
+
+	// Add any plugins from the caller after parsing the build options
+	if buildOptions != nil {
+		buildOptions.Plugins = append(buildOptions.Plugins, plugins...)
+
+		// The "--analyze" flag is implemented as a plugin
+		if analyze != analyzeDisabled {
+			addAnalyzePlugin(buildOptions, analyze, osArgs)
+		}
 	}
 
 	switch {

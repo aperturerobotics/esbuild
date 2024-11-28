@@ -836,7 +836,6 @@ func (service *serviceType) convertPlugins(key int, jsPlugins interface{}, activ
 
 	var onResolveCallbacks []filteredCallback
 	var onLoadCallbacks []filteredCallback
-	hasOnStart := false
 	hasOnEnd := false
 
 	filteredCallbacks := func(pluginName string, kind string, items []interface{}) (result []filteredCallback, err error) {
@@ -859,10 +858,6 @@ func (service *serviceType) convertPlugins(key int, jsPlugins interface{}, activ
 	for _, p := range jsPlugins.([]interface{}) {
 		p := p.(map[string]interface{})
 		pluginName := p["name"].(string)
-
-		if p["onStart"].(bool) {
-			hasOnStart = true
-		}
 
 		if p["onEnd"].(bool) {
 			hasOnEnd = true
@@ -919,6 +914,13 @@ func (service *serviceType) convertPlugins(key int, jsPlugins interface{}, activ
 				if value, ok := request["pluginData"]; ok {
 					options.PluginData = value.(int)
 				}
+				if value, ok := request["with"]; ok {
+					value := value.(map[string]interface{})
+					options.With = make(map[string]string, len(value))
+					for k, v := range value {
+						options.With[k] = v.(string)
+					}
+				}
 
 				result := build.Resolve(path, options)
 				return encodePacket(packet{
@@ -937,22 +939,20 @@ func (service *serviceType) convertPlugins(key int, jsPlugins interface{}, activ
 			}
 			activeBuild.mutex.Unlock()
 
-			// Only register "OnStart" if needed
-			if hasOnStart {
-				build.OnStart(func() (api.OnStartResult, error) {
-					response, ok := service.sendRequest(map[string]interface{}{
-						"command": "on-start",
-						"key":     key,
-					}).(map[string]interface{})
-					if !ok {
-						return api.OnStartResult{}, errors.New("The service was stopped")
-					}
-					return api.OnStartResult{
-						Errors:   decodeMessages(response["errors"].([]interface{})),
-						Warnings: decodeMessages(response["warnings"].([]interface{})),
-					}, nil
-				})
-			}
+			// Always register "OnStart" to clear "pluginData"
+			build.OnStart(func() (api.OnStartResult, error) {
+				response, ok := service.sendRequest(map[string]interface{}{
+					"command": "on-start",
+					"key":     key,
+				}).(map[string]interface{})
+				if !ok {
+					return api.OnStartResult{}, errors.New("The service was stopped")
+				}
+				return api.OnStartResult{
+					Errors:   decodeMessages(response["errors"].([]interface{})),
+					Warnings: decodeMessages(response["warnings"].([]interface{})),
+				}, nil
+			})
 
 			// Only register "OnResolve" if needed
 			if len(onResolveCallbacks) > 0 {
@@ -970,6 +970,11 @@ func (service *serviceType) convertPlugins(key int, jsPlugins interface{}, activ
 						return result, nil
 					}
 
+					with := make(map[string]interface{}, len(args.With))
+					for k, v := range args.With {
+						with[k] = v
+					}
+
 					response, ok := service.sendRequest(map[string]interface{}{
 						"command":    "on-resolve",
 						"key":        key,
@@ -980,6 +985,7 @@ func (service *serviceType) convertPlugins(key int, jsPlugins interface{}, activ
 						"resolveDir": args.ResolveDir,
 						"kind":       resolveKindToString(args.Kind),
 						"pluginData": args.PluginData,
+						"with":       with,
 					}).(map[string]interface{})
 					if !ok {
 						return result, errors.New("The service was stopped")
@@ -1055,7 +1061,7 @@ func (service *serviceType) convertPlugins(key int, jsPlugins interface{}, activ
 						return result, nil
 					}
 
-					with := make(map[string]interface{})
+					with := make(map[string]interface{}, len(args.With))
 					for k, v := range args.With {
 						with[k] = v
 					}
@@ -1266,11 +1272,11 @@ func decodeStringArray(values []interface{}) []string {
 func encodeOutputFiles(outputFiles []api.OutputFile) []interface{} {
 	values := make([]interface{}, len(outputFiles))
 	for i, outputFile := range outputFiles {
-		value := make(map[string]interface{})
-		values[i] = value
-		value["path"] = outputFile.Path
-		value["contents"] = outputFile.Contents
-		value["hash"] = outputFile.Hash
+		values[i] = map[string]interface{}{
+			"path":     outputFile.Path,
+			"contents": outputFile.Contents,
+			"hash":     outputFile.Hash,
+		}
 	}
 	return values
 }

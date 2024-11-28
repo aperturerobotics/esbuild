@@ -1249,6 +1249,7 @@ let handlePlugins = async (
         let resolveDir = getFlag(options, keys, 'resolveDir', mustBeString)
         let kind = getFlag(options, keys, 'kind', mustBeString)
         let pluginData = getFlag(options, keys, 'pluginData', canBeAnything)
+        let importAttributes = getFlag(options, keys, 'with', mustBeObject)
         checkForInvalidFlags(options, keys, 'in resolve() call')
 
         return new Promise((resolve, reject) => {
@@ -1265,6 +1266,7 @@ let handlePlugins = async (
           if (kind != null) request.kind = kind
           else throw new Error(`Must specify "kind" when calling "resolve"`)
           if (pluginData != null) request.pluginData = details.store(pluginData)
+          if (importAttributes != null) request.with = sanitizeStringMap(importAttributes, 'with')
 
           sendRequest<protocol.ResolveRequest, protocol.ResolveResponse>(refs, request, (error, response) => {
             if (error !== null) reject(new Error(error))
@@ -1348,6 +1350,13 @@ let handlePlugins = async (
   }
 
   requestCallbacks['on-start'] = async (id, request: protocol.OnStartRequest) => {
+    // Reset the "pluginData" map before each new build to avoid a memory leak.
+    // This is done before each new build begins instead of after each build ends
+    // because I believe the current API doesn't restrict when you can call
+    // "resolve" and there may be some uses of it that call it around when the
+    // build ends, and we don't want to accidentally break those use cases.
+    details.clear()
+
     let response: protocol.OnStartResponse = { errors: [], warnings: [] }
     await Promise.all(onStartCallbacks.map(async ({ name, callback, note }) => {
       try {
@@ -1382,6 +1391,7 @@ let handlePlugins = async (
           resolveDir: request.resolveDir,
           kind: request.kind,
           pluginData: details.load(request.pluginData),
+          with: request.with,
         })
 
         if (result != null) {
@@ -1545,6 +1555,7 @@ let handlePlugins = async (
 // even if the JavaScript objects aren't serializable. And we also avoid
 // the overhead of serializing large JavaScript objects.
 interface ObjectStash {
+  clear(): void
   load(id: number): any
   store(value: any): number
 }
@@ -1553,6 +1564,9 @@ function createObjectStash(): ObjectStash {
   const map = new Map<number, any>()
   let nextID = 0
   return {
+    clear() {
+      map.clear()
+    },
     load(id) {
       return map.get(id)
     },
@@ -1800,6 +1814,16 @@ function sanitizeStringArray(values: any[], property: string): string[] {
   for (const value of values) {
     if (typeof value !== 'string') throw new Error(`${quote(property)} must be an array of strings`)
     result.push(value)
+  }
+  return result
+}
+
+function sanitizeStringMap(map: Record<string, any>, property: string): Record<string, string> {
+  const result: Record<string, string> = Object.create(null)
+  for (const key in map) {
+    const value = map[key]
+    if (typeof value !== 'string') throw new Error(`key ${quote(key)} in object ${quote(property)} must be a string`)
+    result[key] = value
   }
   return result
 }
