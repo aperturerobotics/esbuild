@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"sync"
@@ -120,11 +121,29 @@ type tlaCheck struct {
 }
 
 func parseFile(args parseArgs) {
+	pathForIdentifierName := args.keyPath.Text
+
+	// Identifier name generation may use the name of the parent folder if the
+	// file name starts with "index". However, this is problematic when the
+	// parent folder includes the parent directory of what the developer
+	// considers to be the root of the source tree. If that happens, strip the
+	// parent folder to avoid including it in the generated name.
+	if relative, ok := args.fs.Rel(args.options.AbsOutputBase, pathForIdentifierName); ok {
+		for {
+			next := strings.TrimPrefix(strings.TrimPrefix(relative, "../"), "..\\")
+			if relative == next {
+				break
+			}
+			relative = next
+		}
+		pathForIdentifierName = relative
+	}
+
 	source := logger.Source{
 		Index:          args.sourceIndex,
 		KeyPath:        args.keyPath,
 		PrettyPath:     args.prettyPath,
-		IdentifierName: js_ast.GenerateNonUniqueNameFromPath(args.keyPath.Text),
+		IdentifierName: js_ast.GenerateNonUniqueNameFromPath(pathForIdentifierName),
 	}
 
 	var loader config.Loader
@@ -171,7 +190,7 @@ func parseFile(args parseArgs) {
 
 	// The special "default" loader determines the loader from the file path
 	if loader == config.LoaderDefault {
-		loader = loaderFromFileExtension(args.options.ExtensionToLoader, base+ext)
+		loader = config.LoaderFromFileExtension(args.options.ExtensionToLoader, base+ext)
 	}
 
 	// Reject unsupported import attributes when the loader isn't "copy" (since
@@ -304,6 +323,7 @@ func parseFile(args parseArgs) {
 		result.ok = ok
 
 	case config.LoaderText:
+		source.Contents = strings.TrimPrefix(source.Contents, "\xEF\xBB\xBF") // Strip any UTF-8 BOM from the text
 		encoded := base64.StdEncoding.EncodeToString([]byte(source.Contents))
 		expr := js_ast.Expr{Data: &js_ast.EString{Value: helpers.StringToUTF16(source.Contents)}}
 		ast := js_parser.LazyExportAST(args.log, source, js_parser.OptionsFromConfig(&args.options), expr, "")
@@ -622,19 +642,38 @@ func parseFile(args parseArgs) {
 							sourceMap.SourcesContent = slice
 						}
 
-						// Attempt to fill in null entries using the file system
 						for i, source := range sourceMap.Sources {
+							// Convert absolute paths to "file://" URLs, which is especially important
+							// for Windows where file paths don't look like URLs at all (they use "\"
+							// as a path separator and start with a "C:\" volume label instead of "/").
+							//
+							// The new source map specification (https://tc39.es/ecma426/) says that
+							// each source is "a string that is a (potentially relative) URL". So we
+							// should technically not be finding absolute paths here in the first place.
+							//
+							// However, for a long time source maps was poorly-specified. The old source
+							// map specification (https://sourcemaps.info/spec.html) only says "sources"
+							// is "a list of original sources used by the mappings entry" which could
+							// be anything, really.
+							//
+							// So it makes sense that software which predates the formal specification
+							// of source maps might fill in the sources array with absolute file paths
+							// instead of URLs. Here are some cases where that happened:
+							//
+							// - https://github.com/mozilla/source-map/issues/355
+							// - https://github.com/webpack/webpack/issues/8226
+							//
+							if path.Namespace == "file" && args.fs.IsAbs(source) {
+								source = helpers.FileURLFromFilePath(source).String()
+								sourceMap.Sources[i] = source
+							}
+
+							// Attempt to fill in null entries using the file system
 							if sourceMap.SourcesContent[i].Value == nil {
-								var absPath string
-								if args.fs.IsAbs(source) {
-									absPath = source
-								} else if path.Namespace == "file" {
-									absPath = args.fs.Join(args.fs.Dir(path.Text), source)
-								} else {
-									continue
-								}
-								if contents, err, _ := args.caches.FSCache.ReadFile(args.fs, absPath); err == nil {
-									sourceMap.SourcesContent[i].Value = helpers.StringToUTF16(contents)
+								if sourceURL, err := url.Parse(source); err == nil && helpers.IsFileURL(sourceURL) {
+									if contents, err, _ := args.caches.FSCache.ReadFile(args.fs, helpers.FilePathFromFileURL(args.fs, sourceURL)); err == nil {
+										sourceMap.SourcesContent[i].Value = helpers.StringToUTF16(contents)
+									}
 								}
 							}
 						}
@@ -796,38 +835,70 @@ func extractSourceMapFromComment(
 ) (logger.Path, *string) {
 	// Support data URLs
 	if parsed, ok := resolver.ParseDataURL(comment.Text); ok {
-		if contents, err := parsed.DecodeData(); err == nil {
-			return logger.Path{Text: source.PrettyPath, IgnoredSuffix: "#sourceMappingURL"}, &contents
-		} else {
+		contents, err := parsed.DecodeData()
+		if err != nil {
 			log.AddID(logger.MsgID_SourceMap_UnsupportedSourceMapComment, logger.Warning, tracker, comment.Range,
 				fmt.Sprintf("Unsupported source map comment: %s", err.Error()))
 			return logger.Path{}, nil
 		}
-	}
-
-	// Relative path in a file with an absolute path
-	if absResolveDir != "" {
-		absPath := fs.Join(absResolveDir, comment.Text)
-		path := logger.Path{Text: absPath, Namespace: "file"}
-		contents, err, originalError := fsCache.ReadFile(fs, absPath)
-		if log.Level <= logger.LevelDebug && originalError != nil {
-			log.AddID(logger.MsgID_None, logger.Debug, tracker, comment.Range, fmt.Sprintf("Failed to read file %q: %s", resolver.PrettyPath(fs, path), originalError.Error()))
-		}
-		if err != nil {
-			kind := logger.Warning
-			if err == syscall.ENOENT {
-				// Don't report a warning because this is likely unactionable
-				kind = logger.Debug
-			}
-			log.AddID(logger.MsgID_SourceMap_MissingSourceMap, kind, tracker, comment.Range,
-				fmt.Sprintf("Cannot read file %q: %s", resolver.PrettyPath(fs, path), err.Error()))
-			return logger.Path{}, nil
-		}
+		path := source.KeyPath
+		path.IgnoredSuffix = "#sourceMappingURL"
 		return path, &contents
 	}
 
-	// Anything else is unsupported
-	return logger.Path{}, nil
+	// Support file URLs of two forms:
+	//
+	//   Relative: "./foo.js.map"
+	//   Absolute: "file:///Users/User/Desktop/foo.js.map"
+	//
+	var absPath string
+	if commentURL, err := url.Parse(comment.Text); err != nil {
+		// Show a warning if the comment can't be parsed as a URL
+		log.AddID(logger.MsgID_SourceMap_UnsupportedSourceMapComment, logger.Warning, tracker, comment.Range,
+			fmt.Sprintf("Unsupported source map comment: %s", err.Error()))
+		return logger.Path{}, nil
+	} else if commentURL.Scheme != "" && commentURL.Scheme != "file" {
+		// URLs with schemes other than "file" are unsupported (e.g. "https"),
+		// but don't warn the user about this because it's not a bug they can fix
+		log.AddID(logger.MsgID_SourceMap_UnsupportedSourceMapComment, logger.Debug, tracker, comment.Range,
+			fmt.Sprintf("Unsupported source map comment: Unsupported URL scheme %q", commentURL.Scheme))
+		return logger.Path{}, nil
+	} else if commentURL.Host != "" && commentURL.Host != "localhost" {
+		// File URLs with hosts are unsupported (e.g. "file://foo.js.map")
+		log.AddID(logger.MsgID_SourceMap_UnsupportedSourceMapComment, logger.Warning, tracker, comment.Range,
+			fmt.Sprintf("Unsupported source map comment: Unsupported host %q in file URL", commentURL.Host))
+		return logger.Path{}, nil
+	} else if helpers.IsFileURL(commentURL) {
+		// Handle absolute file URLs
+		absPath = helpers.FilePathFromFileURL(fs, commentURL)
+	} else if absResolveDir == "" {
+		// Fail if plugins don't set a resolve directory
+		log.AddID(logger.MsgID_SourceMap_UnsupportedSourceMapComment, logger.Debug, tracker, comment.Range,
+			"Unsupported source map comment: Cannot resolve relative URL without a resolve directory")
+		return logger.Path{}, nil
+	} else {
+		// Join the (potentially relative) URL path from the comment text
+		// to the resolve directory path to form the final absolute path
+		absResolveURL := helpers.FileURLFromFilePath(absResolveDir)
+		if !strings.HasSuffix(absResolveURL.Path, "/") {
+			absResolveURL.Path += "/"
+		}
+		absPath = helpers.FilePathFromFileURL(fs, absResolveURL.ResolveReference(commentURL))
+	}
+
+	// Try to read the file contents
+	path := logger.Path{Text: absPath, Namespace: "file"}
+	if contents, err, _ := fsCache.ReadFile(fs, absPath); err == syscall.ENOENT {
+		log.AddID(logger.MsgID_SourceMap_MissingSourceMap, logger.Debug, tracker, comment.Range,
+			fmt.Sprintf("Cannot read file: %s", absPath))
+		return logger.Path{}, nil
+	} else if err != nil {
+		log.AddID(logger.MsgID_SourceMap_MissingSourceMap, logger.Warning, tracker, comment.Range,
+			fmt.Sprintf("Cannot read file %q: %s", resolver.PrettyPath(fs, path), err.Error()))
+		return logger.Path{}, nil
+	} else {
+		return path, &contents
+	}
 }
 
 func sanitizeLocation(fs fs.FS, loc *logger.MsgLocation) {
@@ -1108,19 +1179,16 @@ func runOnLoadPlugins(
 
 	// Read normal modules from disk
 	if source.KeyPath.Namespace == "file" {
-		if contents, err, originalError := fsCache.ReadFile(fs, source.KeyPath.Text); err == nil {
+		if contents, err, _ := fsCache.ReadFile(fs, source.KeyPath.Text); err == nil {
 			source.Contents = contents
 			return loaderPluginResult{
 				loader:        config.LoaderDefault,
 				absResolveDir: fs.Dir(source.KeyPath.Text),
 			}, true
 		} else {
-			if log.Level <= logger.LevelDebug && originalError != nil {
-				log.AddID(logger.MsgID_None, logger.Debug, nil, logger.Range{}, fmt.Sprintf("Failed to read file %q: %s", source.KeyPath.Text, originalError.Error()))
-			}
 			if err == syscall.ENOENT {
 				log.AddError(&tracker, importPathRange,
-					fmt.Sprintf("Could not read from file: %s", source.KeyPath.Text))
+					fmt.Sprintf("Cannot read file: %s", source.KeyPath.Text))
 				return loaderPluginResult{}, false
 			} else {
 				log.AddError(&tracker, importPathRange,
@@ -1156,30 +1224,6 @@ func runOnLoadPlugins(
 
 	// Otherwise, fail to load the path
 	return loaderPluginResult{loader: config.LoaderNone}, true
-}
-
-func loaderFromFileExtension(extensionToLoader map[string]config.Loader, base string) config.Loader {
-	// Pick the loader with the longest matching extension. So if there's an
-	// extension for ".css" and for ".module.css", we want to match the one for
-	// ".module.css" before the one for ".css".
-	if i := strings.IndexByte(base, '.'); i != -1 {
-		for {
-			if loader, ok := extensionToLoader[base[i:]]; ok {
-				return loader
-			}
-			base = base[i+1:]
-			i = strings.IndexByte(base, '.')
-			if i == -1 {
-				break
-			}
-		}
-	} else {
-		// If there's no extension, explicitly check for an extensionless loader
-		if loader, ok := extensionToLoader[""]; ok {
-			return loader
-		}
-	}
-	return config.LoaderNone
 }
 
 // Identify the path by its lowercase absolute path name with Windows-specific
@@ -1857,15 +1901,20 @@ func (s *scanner) addEntryPoints(entryPoints []EntryPoint) []graph.EntryPoint {
 		return nil
 	}
 
-	// Parse all entry points that were resolved successfully
+	// Determine output paths for all entry points that were resolved successfully
+	type entryPointToParse struct {
+		index int
+		parse func() uint32
+	}
+	var entryPointsToParse []entryPointToParse
 	for i, info := range entryPointInfos {
 		if info.results == nil {
 			continue
 		}
 
 		for _, resolveResult := range info.results {
+			resolveResult := resolveResult
 			prettyPath := resolver.PrettyPath(s.fs, resolveResult.PathPair.Primary)
-			sourceIndex := s.maybeParseFile(resolveResult, prettyPath, nil, logger.Range{}, nil, inputKindEntryPoint, nil)
 			outputPath := entryPoints[i].OutputPath
 			outputPathWasAutoGenerated := false
 
@@ -1900,9 +1949,17 @@ func (s *scanner) addEntryPoints(entryPoints []EntryPoint) []graph.EntryPoint {
 				outputPathWasAutoGenerated = true
 			}
 
+			// Defer parsing for this entry point until later
+			entryPointsToParse = append(entryPointsToParse, entryPointToParse{
+				index: len(entryMetas),
+				parse: func() uint32 {
+					return s.maybeParseFile(resolveResult, prettyPath, nil, logger.Range{}, nil, inputKindEntryPoint, nil)
+				},
+			})
+
 			entryMetas = append(entryMetas, graph.EntryPoint{
 				OutputPath:                 outputPath,
-				SourceIndex:                sourceIndex,
+				SourceIndex:                ast.InvalidRef.SourceIndex,
 				OutputPathWasAutoGenerated: outputPathWasAutoGenerated,
 			})
 		}
@@ -1922,6 +1979,11 @@ func (s *scanner) addEntryPoints(entryPoints []EntryPoint) []graph.EntryPoint {
 		if s.options.AbsOutputBase == "" {
 			s.options.AbsOutputBase = entryPointAbsResolveDir
 		}
+	}
+
+	// Only parse entry points after "AbsOutputBase" has been determined
+	for _, toParse := range entryPointsToParse {
+		entryMetas[toParse.index].SourceIndex = toParse.parse()
 	}
 
 	// Turn all output paths back into relative paths, but this time relative to
@@ -2541,11 +2603,13 @@ func (s *scanner) processScannedFiles(entryPointMeta []graph.EntryPoint) []scann
 			// the entry point itself.
 			customFilePath := ""
 			useOutputFile := false
+			isEntryPoint := false
 			if result.file.inputFile.Loader == config.LoaderCopy {
 				if metaIndex, ok := entryPointSourceIndexToMetaIndex[uint32(sourceIndex)]; ok {
 					template = s.options.EntryPathTemplate
 					customFilePath = entryPointMeta[metaIndex].OutputPath
 					useOutputFile = s.options.AbsOutputFile != ""
+					isEntryPoint = true
 				}
 			}
 
@@ -2596,8 +2660,14 @@ func (s *scanner) processScannedFiles(entryPointMeta []graph.EntryPoint) []scann
 					helpers.QuoteForJSON(result.file.inputFile.Source.PrettyPath, s.options.ASCIIOnly),
 					len(bytes),
 				)
+				entryPointJSON := ""
+				if isEntryPoint {
+					entryPointJSON = fmt.Sprintf("\"entryPoint\": %s,\n      ",
+						helpers.QuoteForJSON(result.file.inputFile.Source.PrettyPath, s.options.ASCIIOnly))
+				}
 				jsonMetadataChunk = fmt.Sprintf(
-					"{\n      \"imports\": [],\n      \"exports\": [],\n      \"inputs\": %s,\n      \"bytes\": %d\n    }",
+					"{\n      \"imports\": [],\n      \"exports\": [],\n      %s\"inputs\": %s,\n      \"bytes\": %d\n    }",
+					entryPointJSON,
 					inputs,
 					len(bytes),
 				)

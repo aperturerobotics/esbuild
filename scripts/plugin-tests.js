@@ -145,6 +145,48 @@ let pluginTests = {
     }
   },
 
+  async caseInsensitiveRegExp({ esbuild, testDir }) {
+    const inputJs = path.join(testDir, 'in.js')
+    await writeFileAsync(inputJs, `export default 123`)
+
+    const inputCpp = path.join(testDir, 'in.CpP')
+    await writeFileAsync(inputCpp, `export default 123`)
+
+    // onResolve
+    const onResolveResult = await esbuild.build({
+      entryPoints: ['example.CpP'],
+      write: false,
+      plugins: [{
+        name: 'name',
+        setup(build) {
+          build.onResolve({ filter: /\.c(pp|xx)?$/i }, args => {
+            assert.strictEqual(args.path, 'example.CpP')
+            return { path: inputJs }
+          })
+        },
+      }],
+    })
+    assert.strictEqual(onResolveResult.outputFiles.length, 1)
+    assert.strictEqual(onResolveResult.outputFiles[0].text, `export default 123;\n`)
+
+    // onLoad
+    const onLoadResult = await esbuild.build({
+      entryPoints: [inputCpp],
+      write: false,
+      plugins: [{
+        name: 'name',
+        setup(build) {
+          build.onLoad({ filter: /\.c(pp|xx)?$/i }, args => {
+            assert(args.path.endsWith('in.CpP'))
+            return { contents: 'export default true' }
+          })
+        },
+      }],
+    })
+    assert.strictEqual(onLoadResult.outputFiles.length, 1)
+    assert.strictEqual(onLoadResult.outputFiles[0].text, `export default true;\n`)
+  },
+
   async pluginMissingName({ esbuild }) {
     try {
       await esbuild.build({
@@ -2675,6 +2717,38 @@ console.log(foo_default, foo_default2);
       }],
     })
   },
+
+  async sourceMapNamespacePrefixIssue4078({ esbuild, testDir }) {
+    const entry = path.join(testDir, 'entry.js')
+    await writeFileAsync(entry, `
+      import 'foo'
+      console.log('entry')
+    `)
+
+    const result = await esbuild.build({
+      entryPoints: [entry],
+      bundle: true,
+      sourcemap: true,
+      write: false,
+      outdir: path.join(testDir, 'out'),
+      plugins: [{
+        name: 'example',
+        setup(build) {
+          build.onResolve({ filter: /foo/ }, () => {
+            return { path: 'lib/foo', namespace: 'mynamespace' }
+          })
+          build.onLoad({ filter: /foo/, namespace: 'mynamespace' }, () => {
+            return { contents: 'console.log("foo")' }
+          })
+        },
+      }],
+    })
+
+    assert.strictEqual(result.outputFiles.length, 2)
+    const map = result.outputFiles.find(file => file.path.endsWith('.js.map'))
+    const json = JSON.parse(map.text)
+    assert.deepStrictEqual(json.sources, ['mynamespace:lib/foo', '../entry.js'])
+  },
 }
 
 const makeRebuildUntilPlugin = () => {
@@ -3220,7 +3294,7 @@ let syncTests = {
 
       // Fetch once
       try {
-        await fetch(server.host, server.port, '/out.js')
+        await fetch(server.hosts[0], server.port, '/out.js')
         throw new Error('Expected an error to be thrown')
       } catch (err) {
         assert.strictEqual(err.statusCode, 503)
@@ -3232,7 +3306,7 @@ let syncTests = {
       await writeFileAsync(input, `console.log(1+2)`)
 
       // Fetch again
-      const buffer = await fetchUntilSuccessOrTimeout(server.host, server.port, '/out.js')
+      const buffer = await fetchUntilSuccessOrTimeout(server.hosts[0], server.port, '/out.js')
       assert.strictEqual(buffer.toString(), 'console.log(1 + 2);\n')
       assert.strictEqual(latestResult.errors.length, 0)
       assert.strictEqual(latestResult.outputFiles, undefined)
@@ -3270,7 +3344,7 @@ let syncTests = {
 
       // Fetch once
       try {
-        await fetch(server.host, server.port, '/out.js')
+        await fetch(server.hosts[0], server.port, '/out.js')
         throw new Error('Expected an error to be thrown')
       } catch (err) {
         assert.strictEqual(err.statusCode, 503)
@@ -3283,7 +3357,7 @@ let syncTests = {
       await writeFileAsync(input, `console.log(1+2)`)
 
       // Fetch again
-      const buffer = await fetchUntilSuccessOrTimeout(server.host, server.port, '/out.js')
+      const buffer = await fetchUntilSuccessOrTimeout(server.hosts[0], server.port, '/out.js')
       assert.strictEqual(buffer.toString(), 'console.log(1 + 2);\n')
       assert.strictEqual(latestResult.errors.length, 0)
       assert.strictEqual(latestResult.outputFiles.length, 1)

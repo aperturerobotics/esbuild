@@ -386,11 +386,11 @@ func validateSupported(log logger.Log, supported map[string]bool) (
 	return
 }
 
-func validateGlobalName(log logger.Log, text string) []string {
+func validateGlobalName(log logger.Log, text string, path string) []string {
 	if text != "" {
 		source := logger.Source{
-			KeyPath:    logger.Path{Text: "(global path)"},
-			PrettyPath: "(global name)",
+			KeyPath:    logger.Path{Text: path},
+			PrettyPath: path,
 			Contents:   text,
 		}
 
@@ -516,12 +516,24 @@ func validateLoaders(log logger.Log, loaders map[string]Loader) map[string]confi
 
 func validateJSXExpr(log logger.Log, text string, name string) config.DefineExpr {
 	if text != "" {
-		if expr, _ := js_parser.ParseDefineExprOrJSON(text); len(expr.Parts) > 0 || (name == "fragment" && expr.Constant != nil) {
+		if expr, _ := js_parser.ParseDefineExpr(text); len(expr.Parts) > 0 || (name == "fragment" && expr.Constant != nil) {
 			return expr
 		}
 		log.AddError(nil, logger.Range{}, fmt.Sprintf("Invalid JSX %s: %q", name, text))
 	}
 	return config.DefineExpr{}
+}
+
+// This returns an arbitrary but unique key for each unique array of strings
+func mapKeyForDefine(parts []string) string {
+	var sb strings.Builder
+	var n [4]byte
+	for _, part := range parts {
+		binary.LittleEndian.PutUint32(n[:], uint32(len(part)))
+		sb.Write(n[:])
+		sb.WriteString(part)
+	}
+	return sb.String()
 }
 
 func validateDefines(
@@ -533,32 +545,36 @@ func validateDefines(
 	minify bool,
 	drop Drop,
 ) (*config.ProcessedDefines, []config.InjectedDefine) {
-	rawDefines := make(map[string]config.DefineData)
-	var valueToInject map[string]config.InjectedDefine
-	var definesToInject []string
+	// Sort injected defines for determinism, since the imports will be injected
+	// into every file in the order that we return them from this function
+	sortedKeys := make([]string, 0, len(defines))
+	for key := range defines {
+		sortedKeys = append(sortedKeys, key)
+	}
+	sort.Strings(sortedKeys)
 
-	for key, value := range defines {
-		// The key must be a dot-separated identifier list
-		for _, part := range strings.Split(key, ".") {
-			if !js_ast.IsIdentifier(part) {
-				if part == key {
-					log.AddError(nil, logger.Range{}, fmt.Sprintf("The define key %q must be a valid identifier", key))
-				} else {
-					log.AddError(nil, logger.Range{}, fmt.Sprintf("The define key %q contains invalid identifier %q", key, part))
-				}
-				continue
-			}
+	rawDefines := make(map[string]config.DefineData)
+	nodeEnvParts := []string{"process", "env", "NODE_ENV"}
+	nodeEnvMapKey := mapKeyForDefine(nodeEnvParts)
+	var injectedDefines []config.InjectedDefine
+
+	for _, key := range sortedKeys {
+		value := defines[key]
+		keyParts := validateGlobalName(log, key, "(define name)")
+		if keyParts == nil {
+			continue
 		}
+		mapKey := mapKeyForDefine(keyParts)
 
 		// Parse the value
-		defineExpr, injectExpr := js_parser.ParseDefineExprOrJSON(value)
+		defineExpr, injectExpr := js_parser.ParseDefineExpr(value)
 
 		// Define simple expressions
 		if defineExpr.Constant != nil || len(defineExpr.Parts) > 0 {
-			rawDefines[key] = config.DefineData{DefineExpr: &defineExpr}
+			rawDefines[mapKey] = config.DefineData{KeyParts: keyParts, DefineExpr: &defineExpr}
 
 			// Try to be helpful for common mistakes
-			if len(defineExpr.Parts) == 1 && key == "process.env.NODE_ENV" {
+			if len(defineExpr.Parts) == 1 && mapKey == nodeEnvMapKey {
 				data := logger.MsgData{
 					Text: fmt.Sprintf("%q is defined as an identifier instead of a string (surround %q with quotes to get a string)", key, value),
 				}
@@ -606,32 +622,18 @@ func validateDefines(
 
 		// Inject complex expressions
 		if injectExpr != nil {
-			definesToInject = append(definesToInject, key)
-			if valueToInject == nil {
-				valueToInject = make(map[string]config.InjectedDefine)
-			}
-			valueToInject[key] = config.InjectedDefine{
+			index := ast.MakeIndex32(uint32(len(injectedDefines)))
+			injectedDefines = append(injectedDefines, config.InjectedDefine{
 				Source: logger.Source{Contents: value},
 				Data:   injectExpr,
 				Name:   key,
-			}
+			})
+			rawDefines[mapKey] = config.DefineData{KeyParts: keyParts, DefineExpr: &config.DefineExpr{InjectedDefineIndex: index}}
 			continue
 		}
 
 		// Anything else is unsupported
-		log.AddError(nil, logger.Range{}, fmt.Sprintf("Invalid define value (must be an entity name or valid JSON syntax): %s", value))
-	}
-
-	// Sort injected defines for determinism, since the imports will be injected
-	// into every file in the order that we return them from this function
-	var injectedDefines []config.InjectedDefine
-	if len(definesToInject) > 0 {
-		injectedDefines = make([]config.InjectedDefine, len(definesToInject))
-		sort.Strings(definesToInject)
-		for i, key := range definesToInject {
-			injectedDefines[i] = valueToInject[key]
-			rawDefines[key] = config.DefineData{DefineExpr: &config.DefineExpr{InjectedDefineIndex: ast.MakeIndex32(uint32(i))}}
-		}
+		log.AddError(nil, logger.Range{}, fmt.Sprintf("Invalid define value (must be an entity name or JS literal): %s", value))
 	}
 
 	// If we're bundling for the browser, add a special-cased define for
@@ -641,16 +643,16 @@ func validateDefines(
 	// is only done if it's not already defined so that you can override it if
 	// necessary.
 	if isBuildAPI && platform == config.PlatformBrowser {
-		if _, process := rawDefines["process"]; !process {
-			if _, processEnv := rawDefines["process.env"]; !processEnv {
-				if _, processEnvNodeEnv := rawDefines["process.env.NODE_ENV"]; !processEnvNodeEnv {
+		if _, process := rawDefines[mapKeyForDefine([]string{"process"})]; !process {
+			if _, processEnv := rawDefines[mapKeyForDefine([]string{"process.env"})]; !processEnv {
+				if _, processEnvNodeEnv := rawDefines[nodeEnvMapKey]; !processEnvNodeEnv {
 					var value []uint16
 					if minify {
 						value = helpers.StringToUTF16("production")
 					} else {
 						value = helpers.StringToUTF16("development")
 					}
-					rawDefines["process.env.NODE_ENV"] = config.DefineData{DefineExpr: &config.DefineExpr{Constant: &js_ast.EString{Value: value}}}
+					rawDefines[nodeEnvMapKey] = config.DefineData{KeyParts: nodeEnvParts, DefineExpr: &config.DefineExpr{Constant: &js_ast.EString{Value: value}}}
 				}
 			}
 		}
@@ -658,29 +660,35 @@ func validateDefines(
 
 	// If we're dropping all console API calls, replace each one with undefined
 	if (drop & DropConsole) != 0 {
-		define := rawDefines["console"]
+		consoleParts := []string{"console"}
+		consoleMapKey := mapKeyForDefine(consoleParts)
+		define := rawDefines[consoleMapKey]
+		define.KeyParts = consoleParts
 		define.Flags |= config.MethodCallsMustBeReplacedWithUndefined
-		rawDefines["console"] = define
+		rawDefines[consoleMapKey] = define
 	}
 
 	for _, key := range pureFns {
-		// The key must be a dot-separated identifier list
-		for _, part := range strings.Split(key, ".") {
-			if !js_ast.IsIdentifier(part) {
-				log.AddError(nil, logger.Range{}, fmt.Sprintf("Invalid pure function: %q", key))
-				continue
-			}
+		keyParts := validateGlobalName(log, key, "(pure name)")
+		if keyParts == nil {
+			continue
 		}
+		mapKey := mapKeyForDefine(keyParts)
 
 		// Merge with any previously-specified defines
-		define := rawDefines[key]
+		define := rawDefines[mapKey]
+		define.KeyParts = keyParts
 		define.Flags |= config.CallCanBeUnwrappedIfUnused
-		rawDefines[key] = define
+		rawDefines[mapKey] = define
 	}
 
 	// Processing defines is expensive. Process them once here so the same object
 	// can be shared between all parsers we create using these arguments.
-	processed := config.ProcessDefines(rawDefines)
+	definesArray := make([]config.DefineData, 0, len(rawDefines))
+	for _, define := range rawDefines {
+		definesArray = append(definesArray, define)
+	}
+	processed := config.ProcessDefines(definesArray)
 	return &processed, injectedDefines
 }
 
@@ -1269,7 +1277,7 @@ func validateBuildOptions(
 		ASCIIOnly:             validateASCIIOnly(buildOpts.Charset),
 		IgnoreDCEAnnotations:  buildOpts.IgnoreAnnotations,
 		TreeShaking:           validateTreeShaking(buildOpts.TreeShaking, buildOpts.Bundle, buildOpts.Format),
-		GlobalName:            validateGlobalName(log, buildOpts.GlobalName),
+		GlobalName:            validateGlobalName(log, buildOpts.GlobalName, "(global name)"),
 		CodeSplitting:         buildOpts.Splitting,
 		OutputFormat:          validateFormat(buildOpts.Format),
 		AbsOutputFile:         validatePath(log, realFS, buildOpts.Outfile, "outfile path"),
@@ -1482,10 +1490,12 @@ func rebuildImpl(args rebuildArgs, oldHashes map[string]string) (rebuildState, m
 	newHashes := oldHashes
 
 	// Stop now if there were errors
+	var results []graph.OutputFile
+	var metafile string
 	if !log.HasErrors() {
 		// Compile the bundle
 		result.MangleCache = cloneMangleCache(log, args.mangleCache)
-		results, metafile := bundle.Compile(log, timer, result.MangleCache, linker.Link)
+		results, metafile = bundle.Compile(log, timer, result.MangleCache, linker.Link)
 
 		// Canceling a build generates a single error at the end of the build
 		if args.options.CancelFlag.DidCancel() {
@@ -1495,92 +1505,94 @@ func rebuildImpl(args rebuildArgs, oldHashes map[string]string) (rebuildState, m
 		// Stop now if there were errors
 		if !log.HasErrors() {
 			result.Metafile = metafile
+		}
+	}
 
-			// Populate the results to return
-			var hashBytes [8]byte
-			result.OutputFiles = make([]OutputFile, len(results))
-			newHashes = make(map[string]string)
-			for i, item := range results {
-				if args.options.WriteToStdout {
-					item.AbsPath = "<stdout>"
+	// Populate the results to return
+	var hashBytes [8]byte
+	result.OutputFiles = make([]OutputFile, len(results))
+	newHashes = make(map[string]string)
+	for i, item := range results {
+		if args.options.WriteToStdout {
+			item.AbsPath = "<stdout>"
+		}
+		hasher := xxhash.New()
+		hasher.Write(item.Contents)
+		binary.LittleEndian.PutUint64(hashBytes[:], hasher.Sum64())
+		hash := base64.RawStdEncoding.EncodeToString(hashBytes[:])
+		result.OutputFiles[i] = OutputFile{
+			Path:     item.AbsPath,
+			Contents: item.Contents,
+			Hash:     hash,
+		}
+		newHashes[item.AbsPath] = hash
+	}
+
+	// Write output files before "OnEnd" callbacks run so they can expect
+	// output files to exist on the file system. "OnEnd" callbacks can be
+	// used to move output files to a different location after the build.
+	if args.write {
+		timer.Begin("Write output files")
+		if args.options.WriteToStdout {
+			// Special-case writing to stdout
+			if log.HasErrors() {
+				// No output is printed if there were any build errors
+			} else if len(results) != 1 {
+				log.AddError(nil, logger.Range{}, fmt.Sprintf(
+					"Internal error: did not expect to generate %d files when writing to stdout", len(results)))
+			} else {
+				// Print this later on, at the end of the current function
+				toWriteToStdout = results[0].Contents
+			}
+		} else {
+			// Delete old files that are no longer relevant
+			var toDelete []string
+			for absPath := range oldHashes {
+				if _, ok := newHashes[absPath]; !ok {
+					toDelete = append(toDelete, absPath)
 				}
-				hasher := xxhash.New()
-				hasher.Write(item.Contents)
-				binary.LittleEndian.PutUint64(hashBytes[:], hasher.Sum64())
-				hash := base64.RawStdEncoding.EncodeToString(hashBytes[:])
-				result.OutputFiles[i] = OutputFile{
-					Path:     item.AbsPath,
-					Contents: item.Contents,
-					Hash:     hash,
-				}
-				newHashes[item.AbsPath] = hash
 			}
 
-			// Write output files before "OnEnd" callbacks run so they can expect
-			// output files to exist on the file system. "OnEnd" callbacks can be
-			// used to move output files to a different location after the build.
-			if args.write {
-				timer.Begin("Write output files")
-				if args.options.WriteToStdout {
-					// Special-case writing to stdout
-					if len(results) != 1 {
-						log.AddError(nil, logger.Range{}, fmt.Sprintf(
-							"Internal error: did not expect to generate %d files when writing to stdout", len(results)))
-					} else {
-						// Print this later on, at the end of the current function
-						toWriteToStdout = results[0].Contents
-					}
-				} else {
-					// Delete old files that are no longer relevant
-					var toDelete []string
-					for absPath := range oldHashes {
-						if _, ok := newHashes[absPath]; !ok {
-							toDelete = append(toDelete, absPath)
+			// Process all file operations in parallel
+			waitGroup := sync.WaitGroup{}
+			waitGroup.Add(len(results) + len(toDelete))
+			for _, result := range results {
+				go func(result graph.OutputFile) {
+					defer waitGroup.Done()
+					fs.BeforeFileOpen()
+					defer fs.AfterFileClose()
+					if oldHash, ok := oldHashes[result.AbsPath]; ok && oldHash == newHashes[result.AbsPath] {
+						if contents, err := ioutil.ReadFile(result.AbsPath); err == nil && bytes.Equal(contents, result.Contents) {
+							// Skip writing out files that haven't changed since last time
+							return
 						}
 					}
-
-					// Process all file operations in parallel
-					waitGroup := sync.WaitGroup{}
-					waitGroup.Add(len(results) + len(toDelete))
-					for _, result := range results {
-						go func(result graph.OutputFile) {
-							defer waitGroup.Done()
-							fs.BeforeFileOpen()
-							defer fs.AfterFileClose()
-							if oldHash, ok := oldHashes[result.AbsPath]; ok && oldHash == newHashes[result.AbsPath] {
-								if contents, err := ioutil.ReadFile(result.AbsPath); err == nil && bytes.Equal(contents, result.Contents) {
-									// Skip writing out files that haven't changed since last time
-									return
-								}
-							}
-							if err := fs.MkdirAll(realFS, realFS.Dir(result.AbsPath), 0755); err != nil {
-								log.AddError(nil, logger.Range{}, fmt.Sprintf(
-									"Failed to create output directory: %s", err.Error()))
-							} else {
-								var mode os.FileMode = 0666
-								if result.IsExecutable {
-									mode = 0777
-								}
-								if err := ioutil.WriteFile(result.AbsPath, result.Contents, mode); err != nil {
-									log.AddError(nil, logger.Range{}, fmt.Sprintf(
-										"Failed to write to output file: %s", err.Error()))
-								}
-							}
-						}(result)
+					if err := fs.MkdirAll(realFS, realFS.Dir(result.AbsPath), 0755); err != nil {
+						log.AddError(nil, logger.Range{}, fmt.Sprintf(
+							"Failed to create output directory: %s", err.Error()))
+					} else {
+						var mode os.FileMode = 0666
+						if result.IsExecutable {
+							mode = 0777
+						}
+						if err := ioutil.WriteFile(result.AbsPath, result.Contents, mode); err != nil {
+							log.AddError(nil, logger.Range{}, fmt.Sprintf(
+								"Failed to write to output file: %s", err.Error()))
+						}
 					}
-					for _, absPath := range toDelete {
-						go func(absPath string) {
-							defer waitGroup.Done()
-							fs.BeforeFileOpen()
-							defer fs.AfterFileClose()
-							os.Remove(absPath)
-						}(absPath)
-					}
-					waitGroup.Wait()
-				}
-				timer.End("Write output files")
+				}(result)
 			}
+			for _, absPath := range toDelete {
+				go func(absPath string) {
+					defer waitGroup.Done()
+					fs.BeforeFileOpen()
+					defer fs.AfterFileClose()
+					os.Remove(absPath)
+				}(absPath)
+			}
+			waitGroup.Wait()
 		}
+		timer.End("Write output files")
 	}
 
 	// Only return the mangle cache for a successful build
@@ -1713,7 +1725,7 @@ func transformImpl(input string, transformOpts TransformOptions) TransformResult
 		SourceRoot:            transformOpts.SourceRoot,
 		ExcludeSourcesContent: transformOpts.SourcesContent == SourcesContentExclude,
 		OutputFormat:          validateFormat(transformOpts.Format),
-		GlobalName:            validateGlobalName(log, transformOpts.GlobalName),
+		GlobalName:            validateGlobalName(log, transformOpts.GlobalName, "(global name)"),
 		MinifySyntax:          transformOpts.MinifySyntax,
 		MinifyWhitespace:      transformOpts.MinifyWhitespace,
 		MinifyIdentifiers:     transformOpts.MinifyIdentifiers,

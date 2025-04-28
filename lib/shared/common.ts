@@ -28,6 +28,9 @@ let mustBeRegExp = (value: RegExp | undefined): string | null =>
 let mustBeInteger = (value: number | undefined): string | null =>
   typeof value === 'number' && value === (value | 0) ? null : 'an integer'
 
+let mustBeValidPortNumber = (value: number | undefined): string | null =>
+  typeof value === 'number' && value === (value | 0) && value >= 0 && value <= 0xFFFF ? null : 'a valid port number'
+
 let mustBeFunction = (value: Function | undefined): string | null =>
   typeof value === 'function' ? null : 'a function'
 
@@ -187,8 +190,8 @@ function pushCommonFlags(flags: string[], options: CommonOptions, keys: OptionKe
   if (ignoreAnnotations) flags.push(`--ignore-annotations`)
   if (drop) for (let what of drop) flags.push(`--drop:${validateStringValue(what, 'drop')}`)
   if (dropLabels) flags.push(`--drop-labels=${Array.from(dropLabels).map(what => validateStringValue(what, 'dropLabels')).join(',')}`)
-  if (mangleProps) flags.push(`--mangle-props=${mangleProps.source}`)
-  if (reserveProps) flags.push(`--reserve-props=${reserveProps.source}`)
+  if (mangleProps) flags.push(`--mangle-props=${jsRegExpToGoRegExp(mangleProps)}`)
+  if (reserveProps) flags.push(`--reserve-props=${jsRegExpToGoRegExp(reserveProps)}`)
   if (mangleQuoted !== void 0) flags.push(`--mangle-quoted=${mangleQuoted}`)
 
   if (jsx) flags.push(`--jsx=${jsx}`)
@@ -1091,7 +1094,7 @@ function buildOrContextImpl(
         serve: (options = {}) => new Promise((resolve, reject) => {
           if (!streamIn.hasFS) throw new Error(`Cannot use the "serve" API in this environment`)
           const keys: OptionKeys = {}
-          const port = getFlag(options, keys, 'port', mustBeInteger)
+          const port = getFlag(options, keys, 'port', mustBeValidPortNumber)
           const host = getFlag(options, keys, 'host', mustBeString)
           const servedir = getFlag(options, keys, 'servedir', mustBeString)
           const keyfile = getFlag(options, keys, 'keyfile', mustBeString)
@@ -1313,7 +1316,7 @@ let handlePlugins = async (
           if (filter == null) throw new Error(`onResolve() call is missing a filter`)
           let id = nextCallbackID++
           onResolveCallbacks[id] = { name: name!, callback, note: registeredNote }
-          plugin.onResolve.push({ id, filter: filter.source, namespace: namespace || '' })
+          plugin.onResolve.push({ id, filter: jsRegExpToGoRegExp(filter), namespace: namespace || '' })
         },
 
         onLoad(options, callback) {
@@ -1326,7 +1329,7 @@ let handlePlugins = async (
           if (filter == null) throw new Error(`onLoad() call is missing a filter`)
           let id = nextCallbackID++
           onLoadCallbacks[id] = { name: name!, callback, note: registeredNote }
-          plugin.onLoad.push({ id, filter: filter.source, namespace: namespace || '' })
+          plugin.onLoad.push({ id, filter: jsRegExpToGoRegExp(filter), namespace: namespace || '' })
         },
 
         onDispose(callback) {
@@ -1855,4 +1858,10 @@ function convertOutputFiles({ path, contents, hash }: protocol.BuildOutputFile):
       return text
     },
   }
+}
+
+function jsRegExpToGoRegExp(regexp: RegExp): string {
+  let result = regexp.source
+  if (regexp.flags) result = `(?${regexp.flags})${result}`
+  return result
 }

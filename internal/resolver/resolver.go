@@ -243,7 +243,7 @@ func NewResolver(call config.APICall, fs fs.FS, log logger.Log, caches *cache.Ca
 	// Filter out non-CSS extensions for CSS "@import" imports
 	cssExtensionOrder := make([]string, 0, len(options.ExtensionOrder))
 	for _, ext := range options.ExtensionOrder {
-		if loader, ok := options.ExtensionToLoader[ext]; !ok || loader.IsCSS() {
+		if loader := config.LoaderFromFileExtension(options.ExtensionToLoader, ext); loader == config.LoaderNone || loader.IsCSS() {
 			cssExtensionOrder = append(cssExtensionOrder, ext)
 		}
 	}
@@ -257,23 +257,23 @@ func NewResolver(call config.APICall, fs fs.FS, log logger.Log, caches *cache.Ca
 	nodeModulesExtensionOrder := make([]string, 0, len(options.ExtensionOrder))
 	split := 0
 	for i, ext := range options.ExtensionOrder {
-		if loader, ok := options.ExtensionToLoader[ext]; ok && loader == config.LoaderJS || loader == config.LoaderJSX {
+		if loader := config.LoaderFromFileExtension(options.ExtensionToLoader, ext); loader == config.LoaderJS || loader == config.LoaderJSX {
 			split = i + 1 // Split after the last JavaScript extension
 		}
 	}
 	if split != 0 { // Only do this if there are any JavaScript extensions
 		for _, ext := range options.ExtensionOrder[:split] { // Non-TypeScript extensions before the split
-			if loader, ok := options.ExtensionToLoader[ext]; !ok || !loader.IsTypeScript() {
+			if loader := config.LoaderFromFileExtension(options.ExtensionToLoader, ext); !loader.IsTypeScript() {
 				nodeModulesExtensionOrder = append(nodeModulesExtensionOrder, ext)
 			}
 		}
 		for _, ext := range options.ExtensionOrder { // All TypeScript extensions
-			if loader, ok := options.ExtensionToLoader[ext]; ok && loader.IsTypeScript() {
+			if loader := config.LoaderFromFileExtension(options.ExtensionToLoader, ext); loader.IsTypeScript() {
 				nodeModulesExtensionOrder = append(nodeModulesExtensionOrder, ext)
 			}
 		}
 		for _, ext := range options.ExtensionOrder[split:] { // Non-TypeScript extensions after the split
-			if loader, ok := options.ExtensionToLoader[ext]; !ok || !loader.IsTypeScript() {
+			if loader := config.LoaderFromFileExtension(options.ExtensionToLoader, ext); !loader.IsTypeScript() {
 				nodeModulesExtensionOrder = append(nodeModulesExtensionOrder, ext)
 			}
 		}
@@ -1000,26 +1000,47 @@ func (r resolverQuery) resolveWithoutSymlinks(sourceDir string, sourceDirInfo *d
 			return &ResolveResult{PathPair: PathPair{Primary: logger.Path{Text: absPath, Namespace: "file"}, IsExternal: true}}
 		}
 
-		// Check the "browser" map
-		if importDirInfo := r.dirInfoCached(r.fs.Dir(absPath)); importDirInfo != nil {
-			if remapped, ok := r.checkBrowserMap(importDirInfo, absPath, absolutePathKind); ok {
-				if remapped == nil {
-					return &ResolveResult{PathPair: PathPair{Primary: logger.Path{Text: absPath, Namespace: "file", Flags: logger.PathDisabled}}}
-				}
-				if remappedResult, ok, diffCase, sideEffects := r.resolveWithoutRemapping(importDirInfo.enclosingBrowserScope, *remapped); ok {
-					result = ResolveResult{PathPair: remappedResult, DifferentCase: diffCase, PrimarySideEffectsData: sideEffects}
-					checkRelative = false
-					checkPackage = false
-				}
-			}
-		}
+		// Node's actual behavior deviates from its published algorithm by not
+		// running the "LOAD_AS_FILE" step if the import path looks like it
+		// resolves to a directory instead of a file. Attempt to replicate that
+		// behavior here. This really only matters for intentionally confusing
+		// edge cases where a directory is named the same thing as a file.
+		// Unfortunately people actually create situations like this.
+		hasTrailingSlash := importPath == "." ||
+			importPath == ".." ||
+			strings.HasSuffix(importPath, "/") ||
+			strings.HasSuffix(importPath, "/.") ||
+			strings.HasSuffix(importPath, "/..")
 
-		if checkRelative {
-			if absolute, ok, diffCase := r.loadAsFileOrDirectory(absPath); ok {
+		if hasTrailingSlash {
+			if absolute, ok, diffCase := r.loadAsDirectory(absPath); ok {
 				checkPackage = false
 				result = ResolveResult{PathPair: absolute, DifferentCase: diffCase}
 			} else if !checkPackage {
 				return nil
+			}
+		} else {
+			// Check the "browser" map
+			if importDirInfo := r.dirInfoCached(r.fs.Dir(absPath)); importDirInfo != nil {
+				if remapped, ok := r.checkBrowserMap(importDirInfo, absPath, absolutePathKind); ok {
+					if remapped == nil {
+						return &ResolveResult{PathPair: PathPair{Primary: logger.Path{Text: absPath, Namespace: "file", Flags: logger.PathDisabled}}}
+					}
+					if remappedResult, ok, diffCase, sideEffects := r.resolveWithoutRemapping(importDirInfo.enclosingBrowserScope, *remapped); ok {
+						result = ResolveResult{PathPair: remappedResult, DifferentCase: diffCase, PrimarySideEffectsData: sideEffects}
+						checkRelative = false
+						checkPackage = false
+					}
+				}
+			}
+
+			if checkRelative {
+				if absolute, ok, diffCase := r.loadAsFileOrDirectory(absPath); ok {
+					checkPackage = false
+					result = ResolveResult{PathPair: absolute, DifferentCase: diffCase}
+				} else if !checkPackage {
+					return nil
+				}
 			}
 		}
 	}
@@ -1897,6 +1918,19 @@ func (r resolverQuery) loadAsFileOrDirectory(path string) (PathPair, bool, *fs.D
 	absolute, ok, diffCase := r.loadAsFile(path, extensionOrder)
 	if ok {
 		return PathPair{Primary: logger.Path{Text: absolute, Namespace: "file"}}, true, diffCase
+	}
+
+	return r.loadAsDirectory(path)
+}
+
+func (r resolverQuery) loadAsDirectory(path string) (PathPair, bool, *fs.DifferentCase) {
+	extensionOrder := r.options.ExtensionOrder
+	if r.kind.MustResolveToCSS() {
+		// Use a special import order for CSS "@import" imports
+		extensionOrder = r.cssExtensionOrder
+	} else if helpers.IsInsideNodeModules(path) {
+		// Use a special import order for imports inside "node_modules"
+		extensionOrder = r.nodeModulesExtensionOrder
 	}
 
 	// Is this a directory?

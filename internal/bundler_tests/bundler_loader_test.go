@@ -1194,6 +1194,7 @@ func TestLoaderCopyWithBundleEntryPoint(t *testing.T) {
 				".css":  config.LoaderCSS,
 				".file": config.LoaderCopy,
 			},
+			NeedsMetafile: true,
 		},
 	})
 }
@@ -1298,7 +1299,8 @@ func TestWithTypeJSONOverrideLoader(t *testing.T) {
 		},
 		entryPaths: []string{"/entry.js"},
 		options: config.Options{
-			Mode: config.ModeBundle,
+			Mode:          config.ModeBundle,
+			AbsOutputFile: "/out.js",
 		},
 	})
 }
@@ -1313,7 +1315,8 @@ func TestWithTypeJSONOverrideLoaderGlob(t *testing.T) {
 		},
 		entryPaths: []string{"/entry.js"},
 		options: config.Options{
-			Mode: config.ModeBundle,
+			Mode:          config.ModeBundle,
+			AbsOutputFile: "/out.js",
 		},
 	})
 }
@@ -1382,6 +1385,7 @@ func TestEmptyLoaderJS(t *testing.T) {
 				".js":    config.LoaderJS,
 				".empty": config.LoaderEmpty,
 			},
+			AbsOutputFile: "/out.js",
 		},
 		expectedCompileLog: `entry.js: WARNING: Import "named" will always be undefined because the file "d.empty" has no exports
 `,
@@ -1407,6 +1411,7 @@ func TestEmptyLoaderCSS(t *testing.T) {
 				".css":   config.LoaderCSS,
 				".empty": config.LoaderEmpty,
 			},
+			AbsOutputFile: "/out.js",
 		},
 	})
 }
@@ -1426,6 +1431,7 @@ func TestExtensionlessLoaderJS(t *testing.T) {
 				".js": config.LoaderJS,
 				"":    config.LoaderJS,
 			},
+			AbsOutputFile: "/out.js",
 		},
 	})
 }
@@ -1445,6 +1451,7 @@ func TestExtensionlessLoaderCSS(t *testing.T) {
 				".css": config.LoaderCSS,
 				"":     config.LoaderCSS,
 			},
+			AbsOutputFile: "/out.js",
 		},
 	})
 }
@@ -1736,6 +1743,132 @@ func TestLoaderJSONPrototypeES5(t *testing.T) {
 			AbsOutputFile:         "/out.js",
 			MinifySyntax:          true,
 			UnsupportedJSFeatures: es(5),
+		},
+	})
+}
+
+func TestLoaderJSONWithBigInt(t *testing.T) {
+	loader_suite.expectBundled(t, bundled{
+		files: map[string]string{
+			"/entry.js": `
+				import data from "./data.json"
+				console.log(data)
+			`,
+			"/data.json": `{
+				"invalid": [123n]
+			}`,
+		},
+		entryPaths: []string{"/entry.js"},
+		options: config.Options{
+			Mode:          config.ModeBundle,
+			AbsOutputFile: "/out.js",
+		},
+		expectedScanLog: `data.json: ERROR: Unexpected "123n" in JSON
+`,
+	})
+}
+
+func TestLoaderTextUTF8BOM(t *testing.T) {
+	loader_suite.expectBundled(t, bundled{
+		files: map[string]string{
+			"/entry.js": `
+				import data1 from "./data1.txt"
+				import data2 from "./data2.txt"
+				console.log(data1, data2)
+			`,
+			"/data1.txt": "\xEF\xBB\xBFtext",
+			"/data2.txt": "text\xEF\xBB\xBF",
+		},
+		entryPaths: []string{"/entry.js"},
+		options: config.Options{
+			Mode:          config.ModeBundle,
+			AbsOutputFile: "/out.js",
+		},
+	})
+}
+
+// See: https://github.com/evanw/esbuild/issues/4075
+func TestLoaderInlineSourceMapAbsolutePathIssue4075Unix(t *testing.T) {
+	urlEncodedUnix := "%22file%3A%2F%2F%2Fout%2Fsrc%2Fstyles1.scss%22" // file:///out/src/styles1.scss
+	pathEncodedUnix := "%22%2Fout%2Fsrc%2Fstyles2.scss%22"             // /out/src/styles2.scss
+
+	loader_suite.expectBundledUnix(t, bundled{
+		files: map[string]string{
+			"/home/user/project/src/entry.css": `
+				@import "./styles1.css";
+				@import "./styles2.css";
+			`,
+			"/home/user/project/src/styles1.css": `/* You can add global styles to this file, and also import other style files */
+			* {
+				content: "foo";
+			}
+
+			/*# sourceMappingURL=data:application/json;charset=utf-8,%7B%22version%22:3,` +
+				`%22sourceRoot%22:%22%22,%22sources%22:%5B` + urlEncodedUnix + `%5D,%22n` +
+				`ames%22:%5B%5D,%22mappings%22:%22AAAA;AACA;EACE,SAAS%22,%22file%22:%22o` +
+				`ut%22,%22sourcesContent%22:%5B%22/*%20You%20can%20add%20global%20styles` +
+				`%20to%20this%20file,%20and%20also%20import%20other%20style%20files%20%2` +
+				`A/%5Cn*%20%7B%5Cn%20%20content:%20%5C%22foo%5C%22%5Cn%7D%5Cn%22%5D%7D */`,
+			"/home/user/project/src/styles2.css": `/* You can add global styles to this file, and also import other style files */
+			* {
+				content: "bar";
+			}
+
+			/*# sourceMappingURL=data:application/json;charset=utf-8,%7B%22version%22:3,` +
+				`%22sourceRoot%22:%22%22,%22sources%22:%5B` + pathEncodedUnix + `%5D,%22` +
+				`names%22:%5B%5D,%22mappings%22:%22AAAA;AACA;EACE,SAAS%22,%22file%22:%22` +
+				`out%22,%22sourcesContent%22:%5B%22/*%20You%20can%20add%20global%20style` +
+				`s%20to%20this%20file,%20and%20also%20import%20other%20style%20files%20%` +
+				`2A/%5Cn*%20%7B%5Cn%20%20content:%20%5C%22bar%5C%22%5Cn%7D%5Cn%22%5D%7D */`,
+		},
+		entryPaths: []string{"/home/user/project/src/entry.css"},
+		options: config.Options{
+			Mode:         config.ModeBundle,
+			SourceMap:    config.SourceMapLinkedWithComment,
+			AbsOutputDir: "/out",
+		},
+	})
+}
+
+// See: https://github.com/evanw/esbuild/issues/4075
+func TestLoaderInlineSourceMapAbsolutePathIssue4075Windows(t *testing.T) {
+	urlEncodedWin := "%22file%3A%2F%2F%2FC%3A%2Fout%2Fsrc%2Fstyles1.scss%22" // file:///C:/out/src/styles1.scss
+	pathEncodedWin := "%22C%3A%5C%5Cout%5C%5Csrc%5C%5Cstyles2.scss%22"       // C:\out\src\styles2.scss
+
+	loader_suite.expectBundledWindows(t, bundled{
+		files: map[string]string{
+			"/home/user/project/src/entry.css": `
+				@import "./styles1.css";
+				@import "./styles2.css";
+			`,
+			"/home/user/project/src/styles1.css": `/* You can add global styles to this file, and also import other style files */
+			* {
+				content: "foo";
+			}
+
+			/*# sourceMappingURL=data:application/json;charset=utf-8,%7B%22version%22:3,` +
+				`%22sourceRoot%22:%22%22,%22sources%22:%5B` + urlEncodedWin + `%5D,%22n` +
+				`ames%22:%5B%5D,%22mappings%22:%22AAAA;AACA;EACE,SAAS%22,%22file%22:%22o` +
+				`ut%22,%22sourcesContent%22:%5B%22/*%20You%20can%20add%20global%20styles` +
+				`%20to%20this%20file,%20and%20also%20import%20other%20style%20files%20%2` +
+				`A/%5Cn*%20%7B%5Cn%20%20content:%20%5C%22foo%5C%22%5Cn%7D%5Cn%22%5D%7D */`,
+			"/home/user/project/src/styles2.css": `/* You can add global styles to this file, and also import other style files */
+			* {
+				content: "bar";
+			}
+
+			/*# sourceMappingURL=data:application/json;charset=utf-8,%7B%22version%22:3,` +
+				`%22sourceRoot%22:%22%22,%22sources%22:%5B` + pathEncodedWin + `%5D,%22` +
+				`names%22:%5B%5D,%22mappings%22:%22AAAA;AACA;EACE,SAAS%22,%22file%22:%22` +
+				`out%22,%22sourcesContent%22:%5B%22/*%20You%20can%20add%20global%20style` +
+				`s%20to%20this%20file,%20and%20also%20import%20other%20style%20files%20%` +
+				`2A/%5Cn*%20%7B%5Cn%20%20content:%20%5C%22bar%5C%22%5Cn%7D%5Cn%22%5D%7D */`,
+		},
+		entryPaths: []string{"/home/user/project/src/entry.css"},
+		options: config.Options{
+			Mode:         config.ModeBundle,
+			SourceMap:    config.SourceMapLinkedWithComment,
+			AbsOutputDir: "/out",
 		},
 	})
 }

@@ -89,9 +89,13 @@ func (p *parser) markSyntaxFeature(feature compat.JSFeature, r logger.Range) (di
 		return
 
 	case compat.Bigint:
-		// Transforming these will never be supported
-		p.log.AddError(&p.tracker, r, fmt.Sprintf(
-			"Big integer literals are not available in %s", where))
+		// This can't be polyfilled
+		kind := logger.Warning
+		if p.suppressWarningsAboutWeirdCode || p.fnOrArrowDataVisit.tryBodyCount > 0 {
+			kind = logger.Debug
+		}
+		p.log.AddID(logger.MsgID_JS_BigInt, kind, &p.tracker, r, fmt.Sprintf(
+			"Big integer literals are not available in %s and may crash at run-time", where))
 		return
 
 	case compat.ImportMeta:
@@ -341,7 +345,10 @@ func (p *parser) lowerFunction(
 			false, /* isCallTarget */
 			false, /* isDeleteTarget */
 		)
-		if !hasThisValue {
+
+		if isArrow && !p.fnOnlyDataVisit.hasThisUsage {
+			thisValue = js_ast.Expr{Loc: bodyLoc, Data: js_ast.ENullShared}
+		} else if !hasThisValue {
 			thisValue = js_ast.Expr{Loc: bodyLoc, Data: js_ast.EThisShared}
 		}
 

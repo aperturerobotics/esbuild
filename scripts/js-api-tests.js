@@ -4010,7 +4010,7 @@ let watchTests = {
         )
         assert.strictEqual(result2.errors.length, 1)
         assert.strictEqual(result2.errors[0].text, 'Expected ";" but found "2"')
-        assert.strictEqual(await readFileAsync(outfile, 'utf8'), 'throw 3;\n')
+        assert.strictEqual(fs.existsSync(outfile), false)
       }
 
       // Fourth rebuild: edit
@@ -4031,8 +4031,7 @@ let watchTests = {
           result => result.errors.length > 0,
         )
         assert.strictEqual(result2.errors.length, 1)
-        assert.strictEqual(await readFileAsync(outfile, 'utf8'), 'throw 4;\n')
-        assert.strictEqual(await readFileAsync(outfile, 'utf8'), 'throw 4;\n')
+        assert.strictEqual(fs.existsSync(outfile), false)
       }
 
       // Sixth rebuild: restore
@@ -4272,7 +4271,7 @@ let serveTests = {
 
       // Try fetching the non-existent file
       try {
-        await fetch(server.host, server.port, '/' + path.basename(outfile))
+        await fetch(server.hosts[0], server.port, '/' + path.basename(outfile))
         throw new Error('Expected an error to be thrown')
       } catch (err) {
         if (err.statusCode !== 503) throw err
@@ -4289,7 +4288,7 @@ let serveTests = {
       }
 
       // Try fetching the file now
-      const data = await fetch(server.host, server.port, '/' + path.basename(outfile))
+      const data = await fetch(server.hosts[0], server.port, '/' + path.basename(outfile))
       assert.strictEqual(data.toString(), 'throw 4;\n')
     } finally {
       await context.dispose()
@@ -4313,13 +4312,13 @@ let serveTests = {
         host: '127.0.0.1',
         onRequest: args => onRequest(args),
       })
-      assert.strictEqual(result.host, '127.0.0.1');
+      assert.deepStrictEqual(result.hosts, ['127.0.0.1']);
       assert.strictEqual(typeof result.port, 'number');
 
       // GET /in.js
       {
         const singleRequestPromise = new Promise(resolve => { onRequest = resolve });
-        const buffer = await fetch(result.host, result.port, '/in.js')
+        const buffer = await fetch(result.hosts[0], result.port, '/in.js')
         assert.strictEqual(buffer.toString(), `console.log(123);\n`);
         assert.strictEqual(fs.readFileSync(input, 'utf8'), `console.log(123)`)
 
@@ -4334,7 +4333,7 @@ let serveTests = {
       // HEAD /in.js
       {
         const singleRequestPromise = new Promise(resolve => { onRequest = resolve });
-        const buffer = await fetch(result.host, result.port, '/in.js', { method: 'HEAD' })
+        const buffer = await fetch(result.hosts[0], result.port, '/in.js', { method: 'HEAD' })
         assert.strictEqual(buffer.toString(), ``); // HEAD omits the content
         assert.strictEqual(fs.readFileSync(input, 'utf8'), `console.log(123)`)
 
@@ -4390,10 +4389,10 @@ let serveTests = {
         certfile,
         onRequest,
       })
-      assert.strictEqual(result.host, '127.0.0.1');
+      assert.deepStrictEqual(result.hosts, ['127.0.0.1']);
       assert.strictEqual(typeof result.port, 'number');
 
-      const buffer = await fetchHTTPS(result.host, result.port, '/in.js', { certfile })
+      const buffer = await fetchHTTPS(result.hosts[0], result.port, '/in.js', { certfile })
       assert.strictEqual(buffer.toString(), `console.log(123);\n`);
       assert.strictEqual(fs.readFileSync(input, 'utf8'), `console.log(123)`)
 
@@ -4420,65 +4419,65 @@ let serveTests = {
         host: '127.0.0.1',
         servedir: testDir,
       })
-      assert.strictEqual(result.host, '127.0.0.1');
+      assert.deepStrictEqual(result.hosts, ['127.0.0.1']);
       assert.strictEqual(typeof result.port, 'number');
 
       // With a trailing slash
       {
-        const buffer = await fetch(result.host, result.port, '/nested/dir/index.html')
+        const buffer = await fetch(result.hosts[0], result.port, '/nested/dir/index.html')
         assert.strictEqual(buffer.toString(), `<!doctype html>`)
       }
       {
-        const buffer = await fetch(result.host, result.port, '/nested/dir/')
+        const buffer = await fetch(result.hosts[0], result.port, '/nested/dir/')
         assert.strictEqual(buffer.toString(), `<!doctype html>`)
       }
       {
-        const buffer = await fetch(result.host, result.port, '/nested/./dir/')
+        const buffer = await fetch(result.hosts[0], result.port, '/nested/./dir/')
         assert.strictEqual(buffer.toString(), `<!doctype html>`)
       }
       {
-        const buffer = await fetch(result.host, result.port, '/./nested/./dir/./')
+        const buffer = await fetch(result.hosts[0], result.port, '/./nested/./dir/./')
         assert.strictEqual(buffer.toString(), `<!doctype html>`)
       }
       {
-        const buffer = await fetch(result.host, result.port, '/nested/dir//')
+        const buffer = await fetch(result.hosts[0], result.port, '/nested/dir//')
         assert.strictEqual(buffer.toString(), `<!doctype html>`)
       }
       {
-        const buffer = await fetch(result.host, result.port, '/nested//dir/')
+        const buffer = await fetch(result.hosts[0], result.port, '/nested//dir/')
         assert.strictEqual(buffer.toString(), `<!doctype html>`)
       }
 
       // Without a trailing slash
       {
-        const res = await partialFetch(result.host, result.port, '/nested')
+        const res = await partialFetch(result.hosts[0], result.port, '/nested')
         assert.strictEqual(res.statusCode, 302)
         assert.strictEqual(res.headers.location, '/nested/')
       }
       {
-        const res = await partialFetch(result.host, result.port, '/nested/dir')
+        const res = await partialFetch(result.hosts[0], result.port, '/nested/dir')
         assert.strictEqual(res.statusCode, 302)
         assert.strictEqual(res.headers.location, '/nested/dir/')
       }
       {
-        const res = await partialFetch(result.host, result.port, '/nested//dir')
+        const res = await partialFetch(result.hosts[0], result.port, '/nested//dir')
         assert.strictEqual(res.statusCode, 302)
         assert.strictEqual(res.headers.location, '/nested/dir/')
       }
 
       // With leading double slashes (looks like a protocol-relative URL)
       {
-        const res = await partialFetch(result.host, result.port, '//nested')
+        const res = await partialFetch(result.hosts[0], result.port, '//nested')
         assert.strictEqual(res.statusCode, 302)
         assert.strictEqual(res.headers.location, '/nested/')
       }
       {
-        const res = await partialFetch(result.host, result.port, '//nested/dir')
+        const res = await partialFetch(result.hosts[0], result.port, '//nested/dir')
         assert.strictEqual(res.statusCode, 302)
         assert.strictEqual(res.headers.location, '/nested/dir/')
       }
       {
-        const res = await partialFetch(result.host, result.port, '//nested//dir')
+        const res = await partialFetch(result.hosts[0], result.port, '//nested//dir')
         assert.strictEqual(res.statusCode, 302)
         assert.strictEqual(res.headers.location, '/nested/dir/')
       }
@@ -4507,10 +4506,10 @@ let serveTests = {
         host: '127.0.0.1',
         onRequest,
       })
-      assert.strictEqual(result.host, '127.0.0.1');
+      assert.deepStrictEqual(result.hosts, ['127.0.0.1']);
       assert.strictEqual(typeof result.port, 'number');
 
-      const buffer = await fetch(result.host, result.port, '/out.js')
+      const buffer = await fetch(result.hosts[0], result.port, '/out.js')
       assert.strictEqual(buffer.toString(), `console.log(123);\n`);
 
       let singleRequest = await singleRequestPromise;
@@ -4521,7 +4520,7 @@ let serveTests = {
       assert.strictEqual(typeof singleRequest.timeInMS, 'number');
 
       try {
-        await fetch(result.host, result.port, '/in.js')
+        await fetch(result.hosts[0], result.port, '/in.js')
         throw new Error('Expected a 404 error for "/in.js"')
       } catch (err) {
         if (err.message !== '404 when fetching "/in.js": 404 - Not Found')
@@ -4564,13 +4563,13 @@ let serveTests = {
         onRequest: args => onRequest(args),
         servedir: wwwDir,
       })
-      assert.strictEqual(result.host, '127.0.0.1');
+      assert.deepStrictEqual(result.hosts, ['127.0.0.1']);
       assert.strictEqual(typeof result.port, 'number');
 
       let promise, buffer, req;
 
       promise = nextRequestPromise;
-      buffer = await fetch(result.host, result.port, '/in.js')
+      buffer = await fetch(result.hosts[0], result.port, '/in.js')
       assert.strictEqual(buffer.toString(), `console.log(123);\n`);
       assert.strictEqual(fs.existsSync(path.join(wwwDir, path.basename(input))), false);
       req = await promise;
@@ -4581,7 +4580,7 @@ let serveTests = {
       assert.strictEqual(typeof req.timeInMS, 'number');
 
       promise = nextRequestPromise;
-      buffer = await fetch(result.host, result.port, '/')
+      buffer = await fetch(result.hosts[0], result.port, '/')
       assert.strictEqual(buffer.toString(), `<!doctype html>`);
       req = await promise;
       assert.strictEqual(req.method, 'GET');
@@ -4661,13 +4660,13 @@ let serveTests = {
         onRequest: args => onRequest(args),
         servedir: wwwDir,
       })
-      assert.strictEqual(result.host, '127.0.0.1');
+      assert.deepStrictEqual(result.hosts, ['127.0.0.1']);
       assert.strictEqual(typeof result.port, 'number');
 
       let promise, buffer, req;
 
       promise = nextRequestPromise;
-      buffer = await fetch(result.host, result.port, '/out/in.js')
+      buffer = await fetch(result.hosts[0], result.port, '/out/in.js')
       assert.strictEqual(buffer.toString(), `console.log(123);\n`);
       req = await promise;
       assert.strictEqual(req.method, 'GET');
@@ -4677,7 +4676,7 @@ let serveTests = {
       assert.strictEqual(typeof req.timeInMS, 'number');
 
       promise = nextRequestPromise;
-      buffer = await fetch(result.host, result.port, '/')
+      buffer = await fetch(result.hosts[0], result.port, '/')
       assert.strictEqual(buffer.toString(), `<!doctype html>`);
       req = await promise;
       assert.strictEqual(req.method, 'GET');
@@ -4689,7 +4688,7 @@ let serveTests = {
       // Make sure the output directory prefix requires a slash separator
       promise = nextRequestPromise;
       try {
-        await fetch(result.host, result.port, '/outin.js')
+        await fetch(result.hosts[0], result.port, '/outin.js')
         throw new Error('Expected an error to be thrown')
       } catch (err) {
         if (err.statusCode !== 404) throw err
@@ -4728,13 +4727,13 @@ let serveTests = {
         onRequest: args => onRequest(args),
         servedir: testDir,
       })
-      assert.strictEqual(result.host, '127.0.0.1');
+      assert.deepStrictEqual(result.hosts, ['127.0.0.1']);
       assert.strictEqual(typeof result.port, 'number');
 
       let promise, buffer, req;
 
       promise = nextRequestPromise;
-      buffer = await fetch(result.host, result.port, '/')
+      buffer = await fetch(result.hosts[0], result.port, '/')
       assert.strictEqual(buffer.toString(), `<!doctype html>`);
       req = await promise;
       assert.strictEqual(req.method, 'GET');
@@ -4747,7 +4746,7 @@ let serveTests = {
       // "fs.FS" object in Go does not cache the result of calling "ReadDirectory")
       await fs.promises.unlink(index)
       promise = nextRequestPromise;
-      buffer = await fetch(result.host, result.port, '/')
+      buffer = await fetch(result.hosts[0], result.port, '/')
       assert.notStrictEqual(buffer.toString(), '<!doctype html>')
       req = await promise;
       assert.strictEqual(req.method, 'GET');
@@ -4784,12 +4783,11 @@ let serveTests = {
           // Subtract 1 because range headers are inclusive on both ends
           Range: `bytes=${start}-${start + length - 1}`,
         }
-        const fetched = await fetch(result.host, result.port, '/big.txt', { headers })
+        const fetched = await fetch(result.hosts[0], result.port, '/big.txt', { headers })
         delete fetched.headers.date // This changes every time
         delete fetched.headers.connection // Node v19+ no longer sends this
         const expected = buffer.slice(start, start + length)
         expected.headers = {
-          'access-control-allow-origin': '*',
           'content-length': `${length}`,
           'content-range': `bytes ${start}-${start + length - 1}/${byteCount}`,
           'content-type': 'application/octet-stream',
@@ -4820,14 +4818,14 @@ let serveTests = {
       })
       await context.watch()
 
-      const js = await fetch(server.host, server.port, '/out/script.js')
+      const js = await fetch(server.hosts[0], server.port, '/out/script.js')
       assert.strictEqual(js.toString(), `console.log(123);\n`);
 
-      const explicitHTML = await fetch(server.host, server.port, '/out/index.html')
+      const explicitHTML = await fetch(server.hosts[0], server.port, '/out/index.html')
       assert.strictEqual(explicitHTML.toString(), `<script src=script.js></script>`);
 
       // The server should support implicit "index.html" extensions on entry point files
-      const implicitHTML = await fetch(server.host, server.port, '/out/')
+      const implicitHTML = await fetch(server.hosts[0], server.port, '/out/')
       assert.strictEqual(implicitHTML.toString(), `<script src=script.js></script>`);
 
       // Make a change to the HTML
@@ -4863,7 +4861,7 @@ let serveTests = {
       const server = await context.serve({
         host: '127.0.0.1',
       })
-      const stream = await makeEventStream(server.host, server.port, '/esbuild')
+      const stream = await makeEventStream(server.hosts[0], server.port, '/esbuild')
       await context.rebuild().then(
         () => Promise.reject(new Error('Expected an error to be thrown')),
         () => { /* Ignore the build error due to the missing JS file */ },
@@ -4935,7 +4933,7 @@ let serveTests = {
         host: '127.0.0.1',
         servedir: testDir,
       })
-      const stream = await makeEventStream(server.host, server.port, '/esbuild')
+      const stream = await makeEventStream(server.hosts[0], server.port, '/esbuild')
       await context.rebuild().then(
         () => Promise.reject(new Error('Expected an error to be thrown')),
         () => { /* Ignore the build error due to the missing JS file */ },
@@ -5007,7 +5005,7 @@ let serveTests = {
       const server = await context.serve({
         host: '127.0.0.1',
       })
-      const stream = await makeEventStream(server.host, server.port, '/esbuild')
+      const stream = await makeEventStream(server.hosts[0], server.port, '/esbuild')
       await context.rebuild().then(
         () => Promise.reject(new Error('Expected an error to be thrown')),
         () => { /* Ignore the build error due to the missing JS file */ },
@@ -5080,7 +5078,7 @@ let serveTests = {
         host: '127.0.0.1',
         servedir: testDir,
       })
-      const stream = await makeEventStream(server.host, server.port, '/esbuild')
+      const stream = await makeEventStream(server.hosts[0], server.port, '/esbuild')
       await context.rebuild().then(
         () => Promise.reject(new Error('Expected an error to be thrown')),
         () => { /* Ignore the build error due to the missing JS file */ },
@@ -5155,25 +5153,154 @@ let serveTests = {
         servedir: wwwDir,
         fallback,
       })
-      assert.strictEqual(result.host, '127.0.0.1');
+      assert.deepStrictEqual(result.hosts, ['127.0.0.1']);
       assert.strictEqual(typeof result.port, 'number');
 
       let buffer;
 
-      buffer = await fetch(result.host, result.port, '/in.js')
+      buffer = await fetch(result.hosts[0], result.port, '/in.js')
       assert.strictEqual(buffer.toString(), `console.log(123);\n`);
 
-      buffer = await fetch(result.host, result.port, '/')
+      buffer = await fetch(result.hosts[0], result.port, '/')
       assert.strictEqual(buffer.toString(), `<p>fallback</p>`);
 
-      buffer = await fetch(result.host, result.port, '/app/')
+      buffer = await fetch(result.hosts[0], result.port, '/app/')
       assert.strictEqual(buffer.toString(), `<p>index</p>`);
 
-      buffer = await fetch(result.host, result.port, '/app/?foo')
+      buffer = await fetch(result.hosts[0], result.port, '/app/?foo')
       assert.strictEqual(buffer.toString(), `<p>index</p>`);
 
-      buffer = await fetch(result.host, result.port, '/app/foo')
+      buffer = await fetch(result.hosts[0], result.port, '/app/foo')
       assert.strictEqual(buffer.toString(), `<p>fallback</p>`);
+    } finally {
+      await context.dispose();
+    }
+  },
+
+  async serveHostCheckIPv4({ esbuild, testDir }) {
+    const input = path.join(testDir, 'in.js')
+    await writeFileAsync(input, `console.log(123)`)
+
+    let onRequest;
+
+    const context = await esbuild.context({
+      entryPoints: [input],
+      format: 'esm',
+      outdir: testDir,
+      write: false,
+    });
+    try {
+      const result = await context.serve({
+        port: 0,
+        onRequest: args => onRequest(args),
+      })
+      assert(result.hosts.includes('127.0.0.1'));
+      assert.strictEqual(typeof result.port, 'number');
+
+      // GET /in.js from each host
+      for (const host of result.hosts) {
+        const singleRequestPromise = new Promise(resolve => { onRequest = resolve });
+        const buffer = await fetch(host, result.port, '/in.js')
+        assert.strictEqual(buffer.toString(), `console.log(123);\n`);
+        assert.strictEqual(fs.readFileSync(input, 'utf8'), `console.log(123)`)
+
+        let singleRequest = await singleRequestPromise;
+        assert.strictEqual(singleRequest.method, 'GET');
+        assert.strictEqual(singleRequest.path, '/in.js');
+        assert.strictEqual(singleRequest.status, 200);
+        assert.strictEqual(typeof singleRequest.remoteAddress, 'string');
+        assert.strictEqual(typeof singleRequest.timeInMS, 'number');
+      }
+
+      // GET /in.js with a forbidden host header
+      const forbiddenHosts = [
+        'evil.com',
+        'evil.com:666',
+        '1.2.3.4',
+        '1.2.3.4:666',
+        '::1234',
+        '[::1234]:666',
+        '[',
+      ]
+      for (const forbiddenHost of forbiddenHosts) {
+        const singleRequestPromise = new Promise(resolve => { onRequest = resolve });
+        try {
+          await fetch(result.hosts[0], result.port, '/in.js', { headers: { Host: forbiddenHost } })
+        } catch {
+        }
+
+        let singleRequest = await singleRequestPromise;
+        assert.strictEqual(singleRequest.method, 'GET');
+        assert.strictEqual(singleRequest.path, '/in.js');
+        assert.strictEqual(singleRequest.status, 403, forbiddenHost); // 403 means "Forbidden"
+        assert.strictEqual(typeof singleRequest.remoteAddress, 'string');
+        assert.strictEqual(typeof singleRequest.timeInMS, 'number');
+      }
+    } finally {
+      await context.dispose();
+    }
+  },
+
+  async serveHostCheckIPv6({ esbuild, testDir }) {
+    const input = path.join(testDir, 'in.js')
+    await writeFileAsync(input, `console.log(123)`)
+
+    let onRequest;
+
+    const context = await esbuild.context({
+      entryPoints: [input],
+      format: 'esm',
+      outdir: testDir,
+      write: false,
+    });
+    try {
+      const result = await context.serve({
+        host: '::',
+        port: 0,
+        onRequest: args => onRequest(args),
+      })
+      assert(result.hosts.includes('::1'));
+      assert.strictEqual(typeof result.port, 'number');
+
+      // GET /in.js from each host
+      for (const host of result.hosts) {
+        const singleRequestPromise = new Promise(resolve => { onRequest = resolve });
+        const buffer = await fetch(host, result.port, '/in.js')
+        assert.strictEqual(buffer.toString(), `console.log(123);\n`);
+        assert.strictEqual(fs.readFileSync(input, 'utf8'), `console.log(123)`)
+
+        let singleRequest = await singleRequestPromise;
+        assert.strictEqual(singleRequest.method, 'GET');
+        assert.strictEqual(singleRequest.path, '/in.js');
+        assert.strictEqual(singleRequest.status, 200);
+        assert.strictEqual(typeof singleRequest.remoteAddress, 'string');
+        assert.strictEqual(typeof singleRequest.timeInMS, 'number');
+      }
+
+      // GET /in.js with a forbidden host header
+      const forbiddenHosts = [
+        'evil.com',
+        'evil.com:666',
+        '1.2.3.4',
+        '1.2.3.4:666',
+        '::1234',
+        '[::1234]:666',
+        '[',
+      ]
+      for (const forbiddenHost of forbiddenHosts) {
+        const singleRequestPromise = new Promise(resolve => { onRequest = resolve });
+        try {
+          await fetch(result.hosts[0], result.port, '/in.js', { headers: { Host: forbiddenHost } })
+        } catch {
+        }
+
+        let singleRequest = await singleRequestPromise;
+        assert.strictEqual(singleRequest.method, 'GET');
+        assert.strictEqual(singleRequest.path, '/in.js');
+        assert.strictEqual(singleRequest.status, 403, forbiddenHost); // 403 means "Forbidden"
+        assert.strictEqual(typeof singleRequest.remoteAddress, 'string');
+        assert.strictEqual(typeof singleRequest.timeInMS, 'number');
+      }
     } finally {
       await context.dispose();
     }
@@ -5836,6 +5963,28 @@ class Foo {
     assert.strictEqual(code, `div{color:#abcd}\n`)
   },
 
+  async cssNestingExpansionLimitWithoutIs({ esbuild }) {
+    const css = `a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{color:red}}}}}}}}}}}}}}}}}}}}`
+    try {
+      await esbuild.transform(css, { loader: 'css', target: 'safari1' })
+      throw new Error('Expected a transform failure')
+    } catch (e) {
+      assert.strictEqual(e.errors.length, 1)
+      assert.strictEqual(e.errors[0].text, 'CSS nesting is causing too much expansion')
+    }
+  },
+
+  async cssNestingExpansionLimitWithIs({ esbuild }) {
+    const css = `a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{a,b{color:red}}}}}}}}}}}}}}}}}}}}`
+    try {
+      await esbuild.transform(css, { loader: 'css', target: 'safari14' })
+      throw new Error('Expected a transform failure')
+    } catch (e) {
+      assert.strictEqual(e.errors.length, 1)
+      assert.strictEqual(e.errors[0].text, 'CSS nesting is causing too much expansion')
+    }
+  },
+
   async cjs_require({ esbuild }) {
     const { code } = await esbuild.transform(`const {foo} = require('path')`, {})
     assert.strictEqual(code, `const { foo } = require("path");\n`)
@@ -6009,6 +6158,22 @@ class Foo {
 π["π 𐀀"]["𐀀"]["𐀀 π"] = `)
   },
 
+  async iifeGlobalNameThis({ esbuild }) {
+    const { code } = await esbuild.transform(`export default 123`, { format: 'iife', globalName: 'this.foo.bar' })
+    const globals = {}
+    vm.createContext(globals)
+    vm.runInContext(code, globals)
+    assert.strictEqual(globals.foo.bar.default, 123)
+    assert.strictEqual(code.slice(0, code.indexOf('(() => {\n')), `(this.foo ||= {}).bar = `)
+  },
+
+  async iifeGlobalNameImportMeta({ esbuild }) {
+    const { code } = await esbuild.transform(`export default 123`, { format: 'iife', globalName: 'import.meta.foo.bar' })
+    const { default: import_meta } = await import('data:text/javascript,' + code + '\nexport default import.meta')
+    assert.strictEqual(import_meta.foo.bar.default, 123)
+    assert.strictEqual(code.slice(0, code.indexOf('(() => {\n')), `(import.meta.foo ||= {}).bar = `)
+  },
+
   async jsx({ esbuild }) {
     const { code } = await esbuild.transform(`console.log(<div/>)`, { loader: 'jsx' })
     assert.strictEqual(code, `console.log(/* @__PURE__ */ React.createElement("div", null));\n`)
@@ -6065,17 +6230,57 @@ class Foo {
   },
 
   async dropConsole({ esbuild }) {
-    const { code } = await esbuild.transform(`
-      console('foo')
+    const { code: drop } = await esbuild.transform(`
       console.log('foo')
       console.log(foo())
+      console.log.call(console, foo())
+      console.log.apply(console, foo())
       x = console.log(bar())
+      console['log']('foo')
+    `, { drop: ['console'] })
+    assert.strictEqual(drop, `x = void 0;\n`)
+
+    const { code: keepArrow } = await esbuild.transform(`
+      console('foo')
       console.abc.xyz('foo')
       console['log']('foo')
       console[abc][xyz]('foo')
       console[foo()][bar()]('foo')
+      const x = {
+        log: console.log.bind(console),
+      }
     `, { drop: ['console'] })
-    assert.strictEqual(code, `console("foo");\nx = void 0;\n`)
+    assert.strictEqual(keepArrow, `console("foo");
+(() => {
+}).xyz("foo");
+console[abc][xyz]("foo");
+console[foo()][bar()]("foo");
+const x = {
+  log: (() => {
+  }).bind(console)
+};
+`)
+
+    const { code: keepFn } = await esbuild.transform(`
+      console('foo')
+      console.abc.xyz('foo')
+      console['log']('foo')
+      console[abc][xyz]('foo')
+      console[foo()][bar()]('foo')
+      const x = {
+        log: console.log.bind(console),
+      }
+    `, { drop: ['console'], supported: { arrow: false } })
+    assert.strictEqual(keepFn, `console("foo");
+(function() {
+}).xyz("foo");
+console[abc][xyz]("foo");
+console[foo()][bar()]("foo");
+const x = {
+  log: function() {
+  }.bind(console)
+};
+`)
   },
 
   async keepDebugger({ esbuild }) {
@@ -6088,7 +6293,7 @@ class Foo {
     assert.strictEqual(code, `if (x) ;\n`)
   },
 
-  async define({ esbuild }) {
+  async defineProcessEnvNodeEnv({ esbuild }) {
     const define = { 'process.env.NODE_ENV': '"something"' }
 
     const { code: code1 } = await esbuild.transform(`console.log(process.env.NODE_ENV)`, { define })
@@ -6123,13 +6328,19 @@ class Foo {
   },
 
   async defineThis({ esbuild }) {
-    const { code } = await esbuild.transform(`console.log(a, b); export {}`, { define: { a: 'this', b: 'this.foo' }, format: 'esm' })
-    assert.strictEqual(code, `console.log(void 0, (void 0).foo);\n`)
+    const { code: code1 } = await esbuild.transform(`console.log(a, b); export {}`, { define: { a: 'this', b: 'this.foo' }, format: 'esm' })
+    assert.strictEqual(code1, `console.log(void 0, (void 0).foo);\n`)
+
+    const { code: code2 } = await esbuild.transform(`console.log(this, this.x); export {}`, { define: { this: 'a', 'this.x': 'b' }, format: 'esm' })
+    assert.strictEqual(code2, `console.log(a, b);\n`)
   },
 
   async defineImportMetaESM({ esbuild }) {
-    const { code } = await esbuild.transform(`console.log(a, b); export {}`, { define: { a: 'import.meta', b: 'import.meta.foo' }, format: 'esm' })
-    assert.strictEqual(code, `console.log(import.meta, import.meta.foo);\n`)
+    const { code: code1 } = await esbuild.transform(`console.log(a, b); export {}`, { define: { a: 'import.meta', b: 'import.meta.foo' }, format: 'esm' })
+    assert.strictEqual(code1, `console.log(import.meta, import.meta.foo);\n`)
+
+    const { code: code2 } = await esbuild.transform(`console.log(import.meta, import.meta.x); export {}`, { define: { 'import.meta': 'a', 'import.meta.x': 'b' }, format: 'esm' })
+    assert.strictEqual(code2, `console.log(a, b);\n`)
   },
 
   async defineImportMetaIIFE({ esbuild }) {
@@ -6163,6 +6374,50 @@ class Foo {
         ╵                                   '"production"'
 
 `)
+  },
+
+  async defineQuotedPropertyNameTransform({ esbuild }) {
+    const { code: code1 } = await esbuild.transform(`return x.y['z!']`, { define: { 'x.y["z!"]': 'true' } })
+    assert.strictEqual(code1, `return true;\n`)
+
+    const { code: code2 } = await esbuild.transform(`foo(x['y'].z, x.y['z'], x['y']['z'])`, { define: { 'x.y.z': 'true' } })
+    assert.strictEqual(code2, `foo(true, true, true);\n`)
+
+    const { code: code3 } = await esbuild.transform(`foo(x['y'].z, x.y['z'], x['y']['z'])`, { define: { 'x["y"].z': 'true' } })
+    assert.strictEqual(code3, `foo(true, true, true);\n`)
+
+    const { code: code4 } = await esbuild.transform(`foo(x['y'].z, x.y['z'], x['y']['z'])`, { define: { 'x.y["z"]': 'true' } })
+    assert.strictEqual(code4, `foo(true, true, true);\n`)
+
+    const { code: code5 } = await esbuild.transform(`foo(x['y'].z, x.y['z'], x['y']['z'])`, { define: { 'x["y"][\'z\']': 'true' } })
+    assert.strictEqual(code5, `foo(true, true, true);\n`)
+
+    const { code: code6 } = await esbuild.transform(`foo(import.meta['y'].z, import.meta.y['z'], import.meta['y']['z'])`, { define: { 'import.meta["y"].z': 'true' } })
+    assert.strictEqual(code6, `foo(true, true, true);\n`)
+
+    const { code: code7 } = await esbuild.transform(`foo(import.meta['y!'].z, import.meta.y['z!'], import.meta['y!']['z!'])`, {
+      define: {
+        'import.meta["y!"].z': 'true',
+        'import.meta.y["z!"]': 'true',
+        'import.meta["y!"]["z!"]': 'true'
+      },
+    })
+    assert.strictEqual(code7, `foo(true, true, true);\n`)
+  },
+
+
+  async defineQuotedPropertyNameBuild({ esbuild }) {
+    const { outputFiles } = await esbuild.build({
+      stdin: { contents: `return process.env['SOME-TEST-VAR']` },
+      define: { 'process.env["SOME-TEST-VAR"]': 'true' },
+      write: false,
+    })
+    assert.strictEqual(outputFiles[0].text, `return true;\n`)
+  },
+
+  async defineBigInt({ esbuild }) {
+    const { code } = await esbuild.transform(`console.log(a, b); export {}`, { define: { a: '0n', b: '{"x":[123n]}' }, format: 'esm' })
+    assert.strictEqual(code, `var define_b_default = { x: [123n] };\nconsole.log(0n, define_b_default);\n`)
   },
 
   async json({ esbuild }) {
@@ -6500,6 +6755,14 @@ class Foo {
     assert.strictEqual(code2, `foo;\n`)
   },
 
+  async pureImportMeta({ esbuild }) {
+    const { code: code1 } = await esbuild.transform(`import.meta.foo(123, foo)`, { minifySyntax: true, pure: [] })
+    assert.strictEqual(code1, `import.meta.foo(123, foo);\n`)
+
+    const { code: code2 } = await esbuild.transform(`import.meta.foo(123, foo)`, { minifySyntax: true, pure: ['import.meta.foo'] })
+    assert.strictEqual(code2, `foo;\n`)
+  },
+
   async nameCollisionEvalRename({ esbuild }) {
     const { code } = await esbuild.transform(`
       // "arg" must not be renamed to "arg2"
@@ -6803,11 +7066,11 @@ class Foo {
 
   async multipleEngineTargetsNotSupported({ esbuild }) {
     try {
-      await esbuild.transform(`0n`, { target: ['es5', 'chrome1', 'safari2', 'firefox3'] })
+      await esbuild.transform(`class X {}`, { target: ['es5', 'chrome1', 'safari2', 'firefox3'] })
       throw new Error('Expected an error to be thrown')
     } catch (e) {
       assert.strictEqual(e.errors[0].text,
-        'Big integer literals are not available in the configured target environment ("chrome1", "es5", "firefox3", "safari2")')
+        'Transforming class syntax to the configured target environment ("chrome1", "es5", "firefox3", "safari2") is not supported yet')
     }
   },
 
@@ -6831,12 +7094,12 @@ class Foo {
       check({ supported: { arrow: false }, target: 'es2022' }, `x = () => y`, `x = function() {\n  return y;\n};\n`),
 
       // JS: error
-      check({ supported: { bigint: true } }, `x = 1n`, `x = 1n;\n`),
-      check({ supported: { bigint: false } }, `x = 1n`, `Big integer literals are not available in the configured target environment`),
-      check({ supported: { bigint: true }, target: 'es5' }, `x = 1n`, `x = 1n;\n`),
-      check({ supported: { bigint: false }, target: 'es5' }, `x = 1n`, `Big integer literals are not available in the configured target environment ("es5" + 1 override)`),
-      check({ supported: { bigint: true }, target: 'es2022' }, `x = 1n`, `x = 1n;\n`),
-      check({ supported: { bigint: false }, target: 'es2022' }, `x = 1n`, `Big integer literals are not available in the configured target environment ("es2022" + 1 override)`),
+      check({ supported: { class: true } }, `class X {}`, `class X {\n}\n`),
+      check({ supported: { class: false } }, `class X {}`, `Transforming class syntax to the configured target environment is not supported yet`),
+      check({ supported: { class: true }, target: 'es5' }, `class X {}`, `class X {\n}\n`),
+      check({ supported: { class: false }, target: 'es5' }, `class X {}`, `Transforming class syntax to the configured target environment ("es5" + 11 overrides) is not supported yet`),
+      check({ supported: { class: true }, target: 'es6' }, `class X {}`, `class X {\n}\n`),
+      check({ supported: { class: false }, target: 'es6' }, `class X {}`, `Transforming class syntax to the configured target environment ("es2015" + 11 overrides) is not supported yet`),
 
       // CSS: lower
       check({ supported: { 'hex-rgba': true }, loader: 'css' }, `a { color: #1234 }`, `a {\n  color: #1234;\n}\n`),
@@ -6845,7 +7108,7 @@ class Foo {
       check({ target: 'safari15.4', loader: 'css' }, `a { mask-image: url(x.png) }`, `a {\n  mask-image: url(x.png);\n}\n`),
 
       // Check for "+ 2 overrides"
-      check({ supported: { bigint: false, arrow: true }, target: 'es2022' }, `x = 1n`, `Big integer literals are not available in the configured target environment ("es2022" + 2 overrides)`),
+      check({ supported: { class: false, arrow: true }, target: 'es2022' }, `class X {}`, `Transforming class syntax to the configured target environment ("es2022" + 12 overrides) is not supported yet`),
     ])
   },
 
@@ -6889,9 +7152,6 @@ class Foo {
   },
 
   // Future syntax
-  bigInt: ({ esbuild }) => futureSyntax(esbuild, '123n', 'es2019', 'es2020'),
-  bigIntKey: ({ esbuild }) => futureSyntax(esbuild, '({123n: 0})', 'es2019', 'es2020'),
-  bigIntPattern: ({ esbuild }) => futureSyntax(esbuild, 'let {123n: x} = y', 'es2019', 'es2020'),
   nonIdArrayRest: ({ esbuild }) => futureSyntax(esbuild, 'let [...[x]] = y', 'es2015', 'es2016'),
   topLevelAwait: ({ esbuild }) => futureSyntax(esbuild, 'await foo', 'es2020', 'esnext'),
   topLevelForAwait: ({ esbuild }) => futureSyntax(esbuild, 'for await (foo of bar) ;', 'es2020', 'esnext'),
@@ -7412,7 +7672,7 @@ let childProcessTests = {
   },
 }
 
-let syncTests = {
+let serialTests = {
   async startStop({ esbuild }) {
     for (let i = 0; i < 3; i++) {
       let result1 = await esbuild.transform('1+2')
@@ -7454,7 +7714,6 @@ async function main() {
     process.exit(1)
   }, minutes * 60 * 1000)
 
-  // Run all tests concurrently
   const runTest = async (name, fn) => {
     let testDir = path.join(rootTestDir, name)
     try {
@@ -7479,6 +7738,7 @@ async function main() {
     ...Object.entries(childProcessTests),
   ]
 
+  // Run everything in "tests" concurrently
   let allTestsPassed = (await Promise.all(tests.map(([name, fn]) => {
     const promise = runTest(name, fn)
 
@@ -7491,7 +7751,8 @@ async function main() {
     return promise.finally(() => clearTimeout(timeout))
   }))).every(success => success)
 
-  for (let [name, fn] of Object.entries(syncTests)) {
+  // Run everything in "serialTests" in serial
+  for (let [name, fn] of Object.entries(serialTests)) {
     if (!await runTest(name, fn)) {
       allTestsPassed = false
     }

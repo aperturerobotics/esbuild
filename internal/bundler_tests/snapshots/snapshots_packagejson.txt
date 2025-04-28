@@ -4,6 +4,20 @@ TestCommonJSVariableInESMTypeModule
 module.exports = null;
 
 ================================================================================
+TestConfusingNameCollisionsIssue4144
+---------- /out.js ----------
+// node_modules/mydependency/package/utils/utils.js
+function it() {
+  return works;
+}
+
+// node_modules/mydependency/package/index.js
+var works = true;
+
+// entry.js
+console.log(it());
+
+================================================================================
 TestPackageJsonBadExportsDefaultWarningIssue3867
 ---------- /out.js ----------
 
@@ -683,10 +697,10 @@ TestPackageJsonImportSelfUsingImport
 var foo_import_default = "foo";
 
 // Users/user/project/src/index.js
-var src_default = "index";
-console.log(src_default, foo_import_default);
+var index_default = "index";
+console.log(index_default, foo_import_default);
 export {
-  src_default as default
+  index_default as default
 };
 
 ================================================================================
@@ -696,10 +710,10 @@ TestPackageJsonImportSelfUsingImportScoped
 var foo_import_default = "foo";
 
 // Users/user/project/src/index.js
-var src_default = "index";
-console.log(src_default, foo_import_default);
+var index_default = "index";
+console.log(index_default, foo_import_default);
 export {
-  src_default as default
+  index_default as default
 };
 
 ================================================================================
@@ -713,16 +727,16 @@ var require_foo_require = __commonJS({
 });
 
 // Users/user/project/src/index.js
-var require_src = __commonJS({
+var require_index = __commonJS({
   "Users/user/project/src/index.js"(exports, module) {
     module.exports = "index";
     console.log(
-      require_src(),
+      require_index(),
       require_foo_require()
     );
   }
 });
-export default require_src();
+export default require_index();
 
 ================================================================================
 TestPackageJsonImportSelfUsingRequireScoped
@@ -735,16 +749,16 @@ var require_foo_require = __commonJS({
 });
 
 // Users/user/project/src/index.js
-var require_src = __commonJS({
+var require_index = __commonJS({
   "Users/user/project/src/index.js"(exports, module) {
     module.exports = "index";
     console.log(
-      require_src(),
+      require_index(),
       require_foo_require()
     );
   }
 });
-export default require_src();
+export default require_index();
 
 ================================================================================
 TestPackageJsonImports

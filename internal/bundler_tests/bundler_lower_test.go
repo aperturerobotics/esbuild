@@ -100,7 +100,7 @@ func TestLowerExponentiationOperatorNoBundle(t *testing.T) {
 			UnsupportedJSFeatures: es(2015),
 			AbsOutputFile:         "/out.js",
 		},
-		expectedScanLog: `entry.js: ERROR: Big integer literals are not available in the configured target environment
+		expectedScanLog: `entry.js: WARNING: Big integer literals are not available in the configured target environment and may crash at run-time
 `,
 	})
 }
@@ -786,6 +786,18 @@ func TestLowerAsync2016NoBundle(t *testing.T) {
 					return [this, arguments]
 				}
 				class Foo {async foo() {}}
+				new (class Bar extends class { } {
+					constructor() {
+						let x = 1;
+						(async () => {
+							console.log("before super", x);  // (1) Sync phase
+							await 1;
+							console.log("after super", x);   // (2) Async phase
+						})();
+						super();
+						x = 2;
+					}
+				})();
 				export default [
 					foo,
 					Foo,

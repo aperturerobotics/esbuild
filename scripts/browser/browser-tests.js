@@ -79,7 +79,19 @@ console.log(`[http] listening on ${serverURL}`)
 async function main() {
   let allTestsPassed = true
   try {
-    const browser = await require('puppeteer').launch()
+    const browser = await require('puppeteer').launch({
+      // This is here because since December 2024, GitHub changed something about
+      // their CI that causes this error:
+      //
+      // [FATAL:zygote_host_impl_linux.cc(128)] No usable sandbox! If you are running
+      // on Ubuntu 23.10+ or another Linux distro that has disabled unprivileged user
+      // namespaces with AppArmor, see https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md.
+      // Otherwise see https://chromium.googlesource.com/chromium/src/+/main/docs/linux/suid_sandbox_development.md
+      // for more information on developing with the (older) SUID sandbox. If you want
+      // to live dangerously and need an immediate workaround, you can try using
+      // --no-sandbox.
+      args: ['--no-sandbox'],
+    })
 
     const page = await browser.newPage()
     page.on('console', obj => {
@@ -87,14 +99,14 @@ async function main() {
     })
 
     page.exposeFunction('testBegin', args => {
-      const { esm, min, worker, mime, approach } = JSON.parse(args)
-      console.log(`💬 config: esm=${esm}, min=${min}, worker=${worker}, mime=${mime}, approach=${approach}`)
+      const config = Object.entries(JSON.parse(args)).map(([k, v]) => `${k}=${v}`).join(', ')
+      console.log(`💬 config: ${config}`)
     })
 
     page.exposeFunction('testEnd', args => {
       if (args === null) console.log(`👍 success`)
       else {
-        const { test, stack, error } = JSON.parse(args)
+        const { test, error } = JSON.parse(args)
         console.log(`❌ error${test ? ` [${test}]` : ``}: ${error}`)
         allTestsPassed = false
       }
