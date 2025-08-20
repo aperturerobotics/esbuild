@@ -1673,6 +1673,44 @@ func TestExportWildcardFSNodeCommonJS(t *testing.T) {
 	})
 }
 
+func TestExportSpecialName(t *testing.T) {
+	default_suite.expectBundled(t, bundled{
+		files: map[string]string{
+			"/entry.mjs": `
+			export const __proto__ = 123;
+			`,
+		},
+		entryPaths: []string{"/entry.mjs"},
+		options: config.Options{
+			Mode:          config.ModeConvertFormat,
+			OutputFormat:  config.FormatCommonJS,
+			AbsOutputFile: "/out.js",
+			Platform:      config.PlatformNode,
+		},
+	})
+}
+
+func TestExportSpecialNameBundle(t *testing.T) {
+	default_suite.expectBundled(t, bundled{
+		files: map[string]string{
+			"/entry.js": `
+				const lib = require('./lib.mjs');
+				console.log(lib.__proto__);
+			`,
+			"/lib.mjs": `
+				export const __proto__ = 123;
+			`,
+		},
+		entryPaths: []string{"/entry.js"},
+		options: config.Options{
+			Mode:          config.ModeBundle,
+			OutputFormat:  config.FormatCommonJS,
+			AbsOutputFile: "/out.js",
+			Platform:      config.PlatformNode,
+		},
+	})
+}
+
 // https://github.com/evanw/esbuild/issues/3544
 func TestNodeAnnotationFalsePositiveIssue3544(t *testing.T) {
 	default_suite.expectBundled(t, bundled{
@@ -2530,18 +2568,18 @@ func TestImportAbsPathAsDir(t *testing.T) {
 
 	default_suite.expectBundledWindows(t, bundled{
 		files: map[string]string{
-			"/Users/user/project/entry.js": `
+			"C:\\Users\\user\\project\\entry.js": `
 				import pkg from 'C:\\Users\\user\\project\\node_modules\\pkg'
 				console.log(pkg)
 			`,
-			"/Users/user/project/node_modules/pkg/index.js": `
+			"C:\\Users\\user\\project\\node_modules\\pkg\\index.js": `
 				export default 123
 			`,
 		},
-		entryPaths: []string{"/Users/user/project/entry.js"},
+		entryPaths: []string{"C:\\Users\\user\\project\\entry.js"},
 		options: config.Options{
 			Mode:         config.ModeBundle,
-			AbsOutputDir: "/out",
+			AbsOutputDir: "C:\\out",
 		},
 	})
 }
@@ -4693,14 +4731,14 @@ func TestInjectMissing(t *testing.T) {
 
 	default_suite.expectBundledWindows(t, bundled{
 		files: map[string]string{
-			"/entry.js": ``,
+			"C:\\entry.js": ``,
 		},
-		entryPaths: []string{"/entry.js"},
+		entryPaths: []string{"C:\\entry.js"},
 		options: config.Options{
 			Mode:          config.ModeBundle,
-			AbsOutputFile: "/out.js",
+			AbsOutputFile: "C:\\out.js",
 			InjectPaths: []string{
-				"/inject.js",
+				"C:\\inject.js",
 			},
 		},
 		expectedScanLog: "ERROR: Could not resolve \"C:\\\\inject.js\"\n",

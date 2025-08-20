@@ -143,6 +143,108 @@ let buildTests = {
     assert.strictEqual(require(bOut).y, true)
   },
 
+  async absPathsCodeTest({ esbuild, testDir }) {
+    let srcDir = path.join(testDir, 'src');
+    let outfile = path.join(testDir, 'out', 'result.js');
+    let entry = path.join(srcDir, 'entry.js');
+    fs.mkdirSync(srcDir, { recursive: true });
+    fs.writeFileSync(entry, `x = typeof y == "null"`);
+
+    const { metafile, warnings, outputFiles } = await esbuild.build({
+      entryPoints: [entry],
+      outfile,
+      bundle: true,
+      write: false,
+      metafile: true,
+      format: 'cjs',
+      logLevel: 'silent',
+      absPaths: ['code'],
+    })
+    const cwd = process.cwd()
+    const makePath = absPath => path.relative(cwd, absPath).split(path.sep).join('/')
+
+    assert.strictEqual(outputFiles.length, 1)
+    assert.deepStrictEqual(outputFiles[0].path, outfile)
+    assert.deepStrictEqual(outputFiles[0].text, `// ${entry}\nx = typeof y == "null";\n`)
+
+    assert.deepStrictEqual(Object.keys(metafile.inputs), [makePath(entry)])
+    assert.deepStrictEqual(Object.keys(metafile.outputs), [makePath(outfile)])
+    assert.strictEqual(metafile.inputs[makePath(entry)].imports.length, 0)
+    assert.strictEqual(metafile.outputs[makePath(outfile)].entryPoint, makePath(entry))
+
+    assert.strictEqual(warnings.length, 1)
+    assert.strictEqual(warnings[0].text, 'The "typeof" operator will never evaluate to "null"')
+    assert.strictEqual(warnings[0].location.file, makePath(entry))
+  },
+
+  async absPathsLogTest({ esbuild, testDir }) {
+    let srcDir = path.join(testDir, 'src');
+    let outfile = path.join(testDir, 'out', 'result.js');
+    let entry = path.join(srcDir, 'entry.js');
+    fs.mkdirSync(srcDir, { recursive: true });
+    fs.writeFileSync(entry, `x = typeof y == "null"`);
+
+    const { metafile, warnings, outputFiles } = await esbuild.build({
+      entryPoints: [entry],
+      outfile,
+      bundle: true,
+      write: false,
+      metafile: true,
+      format: 'cjs',
+      logLevel: 'silent',
+      absPaths: ['log'],
+    })
+    const cwd = process.cwd()
+    const makePath = absPath => path.relative(cwd, absPath).split(path.sep).join('/')
+
+    assert.strictEqual(outputFiles.length, 1)
+    assert.deepStrictEqual(outputFiles[0].path, outfile)
+    assert.deepStrictEqual(outputFiles[0].text, `// ${makePath(entry)}\nx = typeof y == "null";\n`)
+
+    assert.deepStrictEqual(Object.keys(metafile.inputs), [makePath(entry)])
+    assert.deepStrictEqual(Object.keys(metafile.outputs), [makePath(outfile)])
+    assert.strictEqual(metafile.inputs[makePath(entry)].imports.length, 0)
+    assert.strictEqual(metafile.outputs[makePath(outfile)].entryPoint, makePath(entry))
+
+    assert.strictEqual(warnings.length, 1)
+    assert.strictEqual(warnings[0].text, 'The "typeof" operator will never evaluate to "null"')
+    assert.strictEqual(warnings[0].location.file, entry)
+  },
+
+  async absPathsMetafileTest({ esbuild, testDir }) {
+    let srcDir = path.join(testDir, 'src');
+    let outfile = path.join(testDir, 'out', 'result.js');
+    let entry = path.join(srcDir, 'entry.js');
+    fs.mkdirSync(srcDir, { recursive: true });
+    fs.writeFileSync(entry, `x = typeof y == "null"`);
+
+    const { metafile, warnings, outputFiles } = await esbuild.build({
+      entryPoints: [entry],
+      outfile,
+      bundle: true,
+      write: false,
+      metafile: true,
+      format: 'cjs',
+      logLevel: 'silent',
+      absPaths: ['metafile'],
+    })
+    const cwd = process.cwd()
+    const makePath = absPath => path.relative(cwd, absPath).split(path.sep).join('/')
+
+    assert.strictEqual(outputFiles.length, 1)
+    assert.deepStrictEqual(outputFiles[0].path, outfile)
+    assert.deepStrictEqual(outputFiles[0].text, `// ${makePath(entry)}\nx = typeof y == "null";\n`)
+
+    assert.deepStrictEqual(Object.keys(metafile.inputs), [entry])
+    assert.deepStrictEqual(Object.keys(metafile.outputs), [outfile])
+    assert.strictEqual(metafile.inputs[entry].imports.length, 0)
+    assert.strictEqual(metafile.outputs[outfile].entryPoint, entry)
+
+    assert.strictEqual(warnings.length, 1)
+    assert.strictEqual(warnings[0].text, 'The "typeof" operator will never evaluate to "null"')
+    assert.strictEqual(warnings[0].location.file, makePath(entry))
+  },
+
   async aliasValidity({ esbuild }) {
     const valid = async alias => {
       const result = await esbuild.build({
@@ -4230,6 +4332,57 @@ let watchTests = {
       await context.dispose()
     }
   },
+
+  async watchDelay({ esbuild, testDir }) {
+    const srcDir = path.join(testDir, 'src')
+    const outdir = path.join(testDir, 'out')
+    const input = path.join(srcDir, 'in.js')
+    const output = path.join(outdir, 'in.js')
+    await mkdirAsync(srcDir, { recursive: true })
+    await writeFileAsync(input, `throw 1`)
+
+    const { rebuildUntil, plugin } = makeRebuildUntilPlugin()
+    const context = await esbuild.context({
+      entryPoints: [input],
+      outdir,
+      format: 'esm',
+      logLevel: 'silent',
+      plugins: [plugin],
+    })
+
+    try {
+      const delay = 2000
+      const result = await rebuildUntil(
+        () => context.watch({ delay }),
+        () => true,
+      )
+      assert.strictEqual(result.errors.length, 0)
+      assert.strictEqual(await readFileAsync(output, 'utf8'), 'throw 1;\n')
+
+      // Edit a file
+      const startTime = Date.now()
+      const editPromise = rebuildUntil(
+        () => writeFileAtomic(input, `throw 2`),
+        () => fs.readFileSync(output, 'utf8') === 'throw 2;\n',
+      )
+
+      // Wait for half the delay time
+      await new Promise(resolve => setTimeout(resolve, delay / 2))
+
+      // The rebuild should not have happened yet (check synchronously)
+      if (Date.now() - startTime < delay) {
+        assert.strictEqual(fs.readFileSync(output, 'utf8'), 'throw 1;\n')
+      } else {
+        // To avoid a flaky test, don't check and assert if the CPU is busy and we missed our window
+      }
+
+      // Wait for the rebuild to happen
+      const result2 = await editPromise
+      assert.strictEqual(result2.errors.length, 0)
+    } finally {
+      await context.dispose()
+    }
+  },
 }
 
 let serveTests = {
@@ -5300,6 +5453,121 @@ let serveTests = {
         assert.strictEqual(singleRequest.status, 403, forbiddenHost); // 403 means "Forbidden"
         assert.strictEqual(typeof singleRequest.remoteAddress, 'string');
         assert.strictEqual(typeof singleRequest.timeInMS, 'number');
+      }
+    } finally {
+      await context.dispose();
+    }
+  },
+
+  async serveCORSNoOrigins({ esbuild, testDir }) {
+    const input = path.join(testDir, 'in.js')
+    await writeFileAsync(input, `console.log(123)`)
+
+    const context = await esbuild.context({
+      entryPoints: [input],
+      format: 'esm',
+      outdir: testDir,
+      write: false,
+    });
+    try {
+      const result = await context.serve({
+        port: 0,
+        cors: {},
+      })
+      assert(result.hosts.length > 0);
+      assert.strictEqual(typeof result.port, 'number');
+
+      // There should be no CORS header
+      const origin = 'https://example.com'
+      const buffer = await fetch(result.hosts[0], result.port, '/in.js', { headers: { Origin: origin } })
+      assert.strictEqual(buffer.toString(), `console.log(123);\n`);
+      assert.strictEqual(fs.readFileSync(input, 'utf8'), `console.log(123)`)
+      assert.strictEqual(buffer.headers['access-control-allow-origin'], undefined)
+    } finally {
+      await context.dispose();
+    }
+  },
+
+  async serveCORSAllOrigins({ esbuild, testDir }) {
+    const input = path.join(testDir, 'in.js')
+    await writeFileAsync(input, `console.log(123)`)
+
+    const context = await esbuild.context({
+      entryPoints: [input],
+      format: 'esm',
+      outdir: testDir,
+      write: false,
+    });
+    try {
+      const result = await context.serve({
+        port: 0,
+        cors: { origin: '*' },
+      })
+      assert(result.hosts.length > 0);
+      assert.strictEqual(typeof result.port, 'number');
+
+      // There should be a CORS header allowing all origins
+      const origin = 'https://example.com'
+      const buffer = await fetch(result.hosts[0], result.port, '/in.js', { headers: { Origin: origin } })
+      assert.strictEqual(buffer.toString(), `console.log(123);\n`);
+      assert.strictEqual(fs.readFileSync(input, 'utf8'), `console.log(123)`)
+      assert.strictEqual(buffer.headers['access-control-allow-origin'], '*')
+    } finally {
+      await context.dispose();
+    }
+  },
+
+  async serveCORSSpecificOrigins({ esbuild, testDir }) {
+    const input = path.join(testDir, 'in.js')
+    await writeFileAsync(input, `console.log(123)`)
+
+    const context = await esbuild.context({
+      entryPoints: [input],
+      format: 'esm',
+      outdir: testDir,
+      write: false,
+    });
+    try {
+      const result = await context.serve({
+        port: 0,
+        cors: {
+          origin: [
+            'http://example.com',
+            'http://foo.example.com',
+            'https://*.example.com',
+          ],
+        },
+      })
+      assert(result.hosts.length > 0);
+      assert.strictEqual(typeof result.port, 'number');
+
+      const allowedOrigins = [
+        'http://example.com',
+        'http://foo.example.com',
+        'https://bar.example.com',
+      ]
+
+      const forbiddenOrigins = [
+        'http://bar.example.com',
+        'https://example.com',
+        'http://evil.com',
+        'https://evil.com',
+      ]
+
+      // GET /in.js from each allowed origin
+      for (const origin of allowedOrigins) {
+        const buffer = await fetch(result.hosts[0], result.port, '/in.js', { headers: { Origin: origin } })
+        assert.strictEqual(buffer.toString(), `console.log(123);\n`);
+        assert.strictEqual(fs.readFileSync(input, 'utf8'), `console.log(123)`)
+        assert.strictEqual(buffer.headers['access-control-allow-origin'], origin)
+      }
+
+      // GET /in.js from each forbidden origin
+      for (const origin of forbiddenOrigins) {
+        const buffer = await fetch(result.hosts[0], result.port, '/in.js', { headers: { Origin: origin } })
+        assert.strictEqual(buffer.toString(), `console.log(123);\n`);
+        assert.strictEqual(fs.readFileSync(input, 'utf8'), `console.log(123)`)
+        assert.strictEqual(buffer.headers['access-control-allow-origin'], undefined)
       }
     } finally {
       await context.dispose();

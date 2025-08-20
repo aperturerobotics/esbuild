@@ -51,6 +51,7 @@ const (
 
 type parseOptionsExtras struct {
 	watch       bool
+	watchDelay  int
 	metafile    *string
 	mangleCache *string
 }
@@ -126,6 +127,17 @@ func parseOptionsImpl(
 			} else {
 				extras.watch = value
 			}
+
+		case strings.HasPrefix(arg, "--watch-delay=") && buildOpts != nil:
+			value := arg[len("--watch-delay="):]
+			delay, err := strconv.Atoi(value)
+			if err != nil {
+				return parseOptionsExtras{}, cli_helpers.MakeErrorWithNote(
+					fmt.Sprintf("Invalid value %q in %q", value, arg),
+					"The watch delay must be an integer.",
+				)
+			}
+			extras.watchDelay = delay
 
 		case isBoolFlag(arg, "--minify"):
 			if value, err := parseBoolFlag(arg, true); err != nil {
@@ -471,6 +483,30 @@ func parseOptionsImpl(
 				buildOpts.LogOverride[value[:equals]] = logLevel
 			} else {
 				transformOpts.LogOverride[value[:equals]] = logLevel
+			}
+
+		case strings.HasPrefix(arg, "--abs-paths="):
+			values := splitWithEmptyCheck(arg[len("--abs-paths="):], ",")
+			var absPaths api.AbsPaths
+			for _, value := range values {
+				switch value {
+				case "code":
+					absPaths |= api.CodeAbsPath
+				case "log":
+					absPaths |= api.LogAbsPath
+				case "metafile":
+					absPaths |= api.MetafileAbsPath
+				default:
+					return parseOptionsExtras{}, cli_helpers.MakeErrorWithNote(
+						fmt.Sprintf("Invalid value %q in %q", value, arg),
+						"Valid values are \"code\", \"log\", or \"metafile\".",
+					)
+				}
+			}
+			if buildOpts != nil {
+				buildOpts.AbsPaths = absPaths
+			} else {
+				transformOpts.AbsPaths = absPaths
 			}
 
 		case strings.HasPrefix(arg, "--supported:"):
@@ -836,6 +872,7 @@ func parseOptionsImpl(
 			}
 
 			equals := map[string]bool{
+				"abs-paths":          true,
 				"allow-overwrite":    true,
 				"asset-names":        true,
 				"banner":             true,
@@ -845,6 +882,7 @@ func parseOptionsImpl(
 				"chunk-names":        true,
 				"color":              true,
 				"conditions":         true,
+				"cors-origin":        true,
 				"drop-labels":        true,
 				"entry-names":        true,
 				"footer":             true,
@@ -892,6 +930,7 @@ func parseOptionsImpl(
 				"tsconfig-raw":       true,
 				"tsconfig":           true,
 				"watch":              true,
+				"watch-delay":        true,
 			}
 
 			colon := map[string]bool{
@@ -1328,7 +1367,9 @@ func runImpl(osArgs []string, plugins []api.Plugin) int {
 				return 1
 			}
 
-			ctx.Watch(api.WatchOptions{})
+			ctx.Watch(api.WatchOptions{
+				Delay: extras.watchDelay,
+			})
 
 			// Do not exit if we're in watch mode
 			<-make(chan struct{})
@@ -1375,6 +1416,7 @@ func parseServeOptionsImpl(osArgs []string) (api.ServeOptions, []string, error) 
 	keyfile := ""
 	certfile := ""
 	fallback := ""
+	var corsOrigin []string
 
 	// Filter out server-specific flags
 	filteredArgs := make([]string, 0, len(osArgs))
@@ -1391,6 +1433,8 @@ func parseServeOptionsImpl(osArgs []string) (api.ServeOptions, []string, error) 
 			certfile = arg[len("--certfile="):]
 		} else if strings.HasPrefix(arg, "--serve-fallback=") {
 			fallback = arg[len("--serve-fallback="):]
+		} else if strings.HasPrefix(arg, "--cors-origin=") {
+			corsOrigin = strings.Split(arg[len("--cors-origin="):], ",")
 		} else {
 			filteredArgs = append(filteredArgs, arg)
 		}
@@ -1429,6 +1473,9 @@ func parseServeOptionsImpl(osArgs []string) (api.ServeOptions, []string, error) 
 		Keyfile:  keyfile,
 		Certfile: certfile,
 		Fallback: fallback,
+		CORS: api.CORSOptions{
+			Origin: corsOrigin,
+		},
 	}, filteredArgs, nil
 }
 

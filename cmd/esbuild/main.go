@@ -56,6 +56,8 @@ var helpText = func(colors logger.Colors) string {
                         stdin is closed, use "--watch=forever" to ignore stdin)
 
 ` + colors.Bold + `Advanced options:` + colors.Reset + `
+  --abs-paths=...           Emit absolute instead of relative paths in these
+                            situations (code | log | metafile)
   --allow-overwrite         Allow output files to overwrite input files
   --analyze                 Print a report about the contents of the bundle
                             (use "--analyze=verbose" for a detailed report)
@@ -68,6 +70,7 @@ var helpText = func(colors logger.Colors) string {
   --chunk-names=...         Path template to use for code splitting chunks
                             (default "[name]-[hash]")
   --color=...               Force use of color terminal escapes (true | false)
+  --cors-origin=...         Allow cross-origin requests from this origin
   --drop:...                Remove certain constructs (console | debugger)
   --drop-labels=...         Remove labeled statements with these label names
   --entry-names=...         Path template to use for entry point output paths
@@ -129,6 +132,7 @@ var helpText = func(colors logger.Colors) string {
   --tsconfig=...            Use this tsconfig.json file instead of other ones
   --tsconfig-raw=...        Override all tsconfig.json files with this string
   --version                 Print the current version (` + esbuildVersion + `) and exit
+  --watch-delay=...         Wait before watch mode rebuilds (in milliseconds)
 
 ` + colors.Bold + `Examples:` + colors.Reset + `
   ` + colors.Dim + `# Produces dist/entry_point.js and dist/entry_point.js.map` + colors.Reset + `

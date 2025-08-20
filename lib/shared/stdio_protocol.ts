@@ -31,6 +31,7 @@ export interface ServeRequest {
   keyfile?: string
   certfile?: string
   fallback?: string
+  corsOrigin?: string[]
 }
 
 export interface ServeResponse {
@@ -97,6 +98,7 @@ export interface CancelRequest {
 export interface WatchRequest {
   command: 'watch'
   key: number
+  delay?: number
 }
 
 export interface OnServeRequest {

@@ -14,7 +14,7 @@ func TestUnsupportedFeatures(t *testing.T) {
 	for key, feature := range compat.StringToJSFeature {
 		t.Run(key, func(t *testing.T) {
 			source := runtime.Source(feature)
-			log := logger.NewDeferLog(logger.DeferLogAll, nil)
+			log := logger.NewDeferLog(logger.DeferLogAll, logger.LevelError, nil)
 
 			js_parser.Parse(log, source, js_parser.OptionsFromConfig(&config.Options{
 				UnsupportedJSFeatures: feature,

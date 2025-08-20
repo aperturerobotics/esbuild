@@ -1,5 +1,286 @@
 # Changelog
 
+## 0.25.9
+
+* Better support building projects that use Yarn on Windows ([#3131](https://github.com/evanw/esbuild/issues/3131), [#3663](https://github.com/evanw/esbuild/issues/3663))
+
+    With this release, you can now use esbuild to bundle projects that use Yarn Plug'n'Play on Windows on drives other than the `C:` drive. The problem was as follows:
+
+    1. Yarn in Plug'n'Play mode on Windows stores its global module cache on the `C:` drive
+    2. Some developers put their projects on the `D:` drive
+    3. Yarn generates relative paths that use `../..` to get from the project directory to the cache directory
+    4. Windows-style paths don't support directory traversal between drives via `..` (so `D:\..` is just `D:`)
+    5. I didn't have access to a Windows machine for testing this edge case
+
+    Yarn works around this edge case by pretending Windows-style paths beginning with `C:\` are actually Unix-style paths beginning with `/C:/`, so the `../..` path segments are able to navigate across drives inside Yarn's implementation. This was broken for a long time in esbuild but I finally got access to a Windows machine and was able to debug and fix this edge case. So you should now be able to bundle these projects with esbuild.
+
+* Preserve parentheses around function expressions ([#4252](https://github.com/evanw/esbuild/issues/4252))
+
+    The V8 JavaScript VM uses parentheses around function expressions as an optimization hint to immediately compile the function. Otherwise the function would be lazily-compiled, which has additional overhead if that function is always called immediately as lazy compilation involves parsing the function twice. You can read [V8's blog post about this](https://v8.dev/blog/preparser) for more details.
+
+    Previously esbuild did not represent parentheses around functions in the AST so they were lost during compilation. With this change, esbuild will now preserve parentheses around function expressions when they are present in the original source code. This means these optimization hints will not be lost when bundling with esbuild. In addition, esbuild will now automatically add this optimization hint to immediately-invoked function expressions. Here's an example:
+
+    ```js
+    // Original code
+    const fn0 = () => 0
+    const fn1 = (() => 1)
+    console.log(fn0, function() { return fn1() }())
+
+    // Old output
+    const fn0 = () => 0;
+    const fn1 = () => 1;
+    console.log(fn0, function() {
+      return fn1();
+    }());
+
+    // New output
+    const fn0 = () => 0;
+    const fn1 = (() => 1);
+    console.log(fn0, (function() {
+      return fn1();
+    })());
+    ```
+
+    Note that you do not want to wrap all function expressions in parentheses. This optimization hint should only be used for functions that are called on initial load. Using this hint for functions that are not called on initial load will unnecessarily delay the initial load. Again, see V8's blog post linked above for details.
+
+* Update Go from 1.23.10 to 1.23.12 ([#4257](https://github.com/evanw/esbuild/issues/4257), [#4258](https://github.com/evanw/esbuild/pull/4258))
+
+    This should have no effect on existing code as this version change does not change Go's operating system support. It may remove certain false positive reports (specifically CVE-2025-4674 and CVE-2025-47907) from vulnerability scanners that only detect which version of the Go compiler esbuild uses.
+
+## 0.25.8
+
+* Fix another TypeScript parsing edge case ([#4248](https://github.com/evanw/esbuild/issues/4248))
+
+    This fixes a regression with a change in the previous release that tries to more accurately parse TypeScript arrow functions inside the `?:` operator. The regression specifically involves parsing an arrow function containing a `#private` identifier inside the middle of a `?:` ternary operator inside a class body. This was fixed by propagating private identifier state into the parser clone used to speculatively parse the arrow function body. Here is an example of some affected code:
+
+    ```ts
+    class CachedDict {
+      #has = (a: string) => dict.has(a);
+      has = window
+        ? (word: string): boolean => this.#has(word)
+        : this.#has;
+    }
+    ```
+
+* Fix a regression with the parsing of source phase imports
+
+    The change in the previous release to parse [source phase imports](https://github.com/tc39/proposal-source-phase-imports) failed to properly handle the following cases:
+
+    ```ts
+    import source from 'bar'
+    import source from from 'bar'
+    import source type foo from 'bar'
+    ```
+
+    Parsing for these cases should now be fixed. The first case was incorrectly treated as a syntax error because esbuild was expecting the second case. And the last case was previously allowed but is now forbidden. TypeScript hasn't added this feature yet so it remains to be seen whether the last case will be allowed, but it's safer to disallow it for now. At least Babel doesn't allow the last case when parsing TypeScript, and Babel was involved with the source phase import specification.
+
+## 0.25.7
+
+* Parse and print JavaScript imports with an explicit phase ([#4238](https://github.com/evanw/esbuild/issues/4238))
+
+    This release adds basic syntax support for the `defer` and `source` import phases in JavaScript:
+
+    * `defer`
+
+        This is a [stage 3 proposal](https://github.com/tc39/proposal-defer-import-eval) for an upcoming JavaScript feature that will provide one way to eagerly load but lazily initialize imported modules. The imported module is automatically initialized on first use. Support for this syntax will also be part of the upcoming release of [TypeScript 5.9](https://devblogs.microsoft.com/typescript/announcing-typescript-5-9-beta/#support-for-import-defer). The syntax looks like this:
+
+        ```js
+        import defer * as foo from "<specifier>";
+        const bar = await import.defer("<specifier>");
+        ```
+
+        Note that this feature deliberately cannot be used with the syntax `import defer foo from "<specifier>"` or `import defer { foo } from "<specifier>"`.
+
+    * `source`
+
+        This is a [stage 3 proposal](https://github.com/tc39/proposal-source-phase-imports) for an upcoming JavaScript feature that will provide another way to eagerly load but lazily initialize imported modules. The imported module is returned in an uninitialized state. Support for this syntax may or may not be a part of TypeScript 5.9 (see [this issue](https://github.com/microsoft/TypeScript/issues/61216) for details). The syntax looks like this:
+
+        ```js
+        import source foo from "<specifier>";
+        const bar = await import.source("<specifier>");
+        ```
+
+        Note that this feature deliberately cannot be used with the syntax `import defer * as foo from "<specifier>"` or `import defer { foo } from "<specifier>"`.
+
+    This change only adds support for this syntax. These imports cannot currently be bundled by esbuild. To use these new features with esbuild's bundler, the imported paths must be external to the bundle and the output format must be set to `esm`.
+
+* Support optionally emitting absolute paths instead of relative paths ([#338](https://github.com/evanw/esbuild/issues/338), [#2082](https://github.com/evanw/esbuild/issues/2082), [#3023](https://github.com/evanw/esbuild/issues/3023))
+
+    This release introduces the `--abs-paths=` feature which takes a comma-separated list of situations where esbuild should use absolute paths instead of relative paths. There are currently three supported situations: `code` (comments and string literals), `log` (log message text and location info), and `metafile` (the JSON build metadata).
+
+    Using absolute paths instead of relative paths is not the default behavior because it means that the build results are no longer machine-independent (which means builds are no longer reproducible). Absolute paths can be useful when used with certain terminal emulators that allow you to click on absolute paths in the terminal text and/or when esbuild is being automatically invoked from several different directories within the same script.
+
+* Fix a TypeScript parsing edge case ([#4241](https://github.com/evanw/esbuild/issues/4241))
+
+    This release fixes an edge case with parsing an arrow function in TypeScript with a return type that's in the middle of a `?:` ternary operator. For example:
+
+    ```ts
+    x = a ? (b) : c => d;
+    y = a ? (b) : c => d : e;
+    ```
+
+    The `:` token in the value assigned to `x` pairs with the `?` token, so it's not the start of a return type annotation. However, the first `:` token in the value assigned to `y` is the start of a return type annotation because after parsing the arrow function body, it turns out there's another `:` token that can be used to pair with the `?` token. This case is notable as it's the first TypeScript edge case that esbuild has needed a backtracking parser to parse. It has been addressed by a quick hack (cloning the whole parser) as it's a rare edge case and esbuild doesn't otherwise need a backtracking parser. Hopefully this is sufficient and doesn't cause any issues.
+
+* Inline small constant strings when minifying
+
+    Previously esbuild's minifier didn't inline string constants because strings can be arbitrarily long, and this isn't necessarily a size win if the string is used more than once. Starting with this release, esbuild will now inline string constants when the length of the string is three code units or less. For example:
+
+    ```js
+    // Original code
+    const foo = 'foo'
+    console.log({ [foo]: true })
+
+    // Old output (with --minify --bundle --format=esm)
+    var o="foo";console.log({[o]:!0});
+
+    // New output (with --minify --bundle --format=esm)
+    console.log({foo:!0});
+    ```
+
+    Note that esbuild's constant inlining only happens in very restrictive scenarios to avoid issues with TDZ handling. This change doesn't change when esbuild's constant inlining happens. It only expands the scope of it to include certain string literals in addition to numeric and boolean literals.
+
+## 0.25.6
+
+* Fix a memory leak when `cancel()` is used on a build context ([#4231](https://github.com/evanw/esbuild/issues/4231))
+
+    Calling `rebuild()` followed by `cancel()` in rapid succession could previously leak memory. The bundler uses a producer/consumer model internally, and the resource leak was caused by the consumer being termianted while there were still remaining unreceived results from a producer. To avoid the leak, the consumer now waits for all producers to finish before terminating.
+
+* Support empty `:is()` and `:where()` syntax in CSS ([#4232](https://github.com/evanw/esbuild/issues/4232))
+
+    Previously using these selectors with esbuild would generate a warning. That warning has been removed in this release for these cases.
+
+* Improve tree-shaking of `try` statements in dead code ([#4224](https://github.com/evanw/esbuild/issues/4224))
+
+    With this release, esbuild will now remove certain `try` statements if esbuild considers them to be within dead code (i.e. code that is known to not ever be evaluated). For example:
+
+    ```js
+    // Original code
+    return 'foo'
+    try { return 'bar' } catch {}
+
+    // Old output (with --minify)
+    return"foo";try{return"bar"}catch{}
+
+    // New output (with --minify)
+    return"foo";
+    ```
+
+* Consider negated bigints to have no side effects
+
+    While esbuild currently considers `1`, `-1`, and `1n` to all have no side effects, it didn't previously consider `-1n` to have no side effects. This is because esbuild does constant folding with numbers but not bigints. However, it meant that unused negative bigint constants were not tree-shaken. With this release, esbuild will now consider these expressions to also be side-effect free:
+
+    ```js
+    // Original code
+    let a = 1, b = -1, c = 1n, d = -1n
+
+    // Old output (with --bundle --minify)
+    (()=>{var n=-1n;})();
+
+    // New output (with --bundle --minify)
+    (()=>{})();
+    ```
+
+* Support a configurable delay in watch mode before rebuilding ([#3476](https://github.com/evanw/esbuild/issues/3476), [#4178](https://github.com/evanw/esbuild/issues/4178))
+
+    The `watch()` API now takes a `delay` option that lets you add a delay (in milliseconds) before rebuilding when a change is detected in watch mode. If you use a tool that regenerates multiple source files very slowly, this should make it more likely that esbuild's watch mode won't generate a broken intermediate build before the successful final build. This option is also available via the CLI using the `--watch-delay=` flag.
+
+    This should also help avoid confusion about the `watch()` API's options argument. It was previously empty to allow for future API expansion, which caused some people to think that the documentation was missing. It's no longer empty now that the `watch()` API has an option.
+
+* Allow mixed array for `entryPoints` API option ([#4223](https://github.com/evanw/esbuild/issues/4223))
+
+    The TypeScript type definitions now allow you to pass a mixed array of both string literals and object literals to the `entryPoints` API option, such as `['foo.js', { out: 'lib', in: 'bar.js' }]`. This was always possible to do in JavaScript but the TypeScript type definitions were previously too restrictive.
+
+* Update Go from 1.23.8 to 1.23.10 ([#4204](https://github.com/evanw/esbuild/issues/4204), [#4207](https://github.com/evanw/esbuild/pull/4207))
+
+    This should have no effect on existing code as this version change does not change Go's operating system support. It may remove certain false positive reports (specifically CVE-2025-4673 and CVE-2025-22874) from vulnerability scanners that only detect which version of the Go compiler esbuild uses.
+
+* Experimental support for esbuild on OpenHarmony ([#4212](https://github.com/evanw/esbuild/pull/4212))
+
+    With this release, esbuild now publishes the [`@esbuild/openharmony-arm64`](https://www.npmjs.com/package/@esbuild/openharmony-arm64) npm package for [OpenHarmony](https://en.wikipedia.org/wiki/OpenHarmony). It contains a WebAssembly binary instead of a native binary because Go doesn't currently support OpenHarmony. Node does support it, however, so in theory esbuild should now work on OpenHarmony through WebAssembly.
+
+    This change was contributed by [@hqzing](https://github.com/hqzing).
+
+## 0.25.5
+
+* Fix a regression with `browser` in `package.json` ([#4187](https://github.com/evanw/esbuild/issues/4187))
+
+    The fix to [#4144](https://github.com/evanw/esbuild/issues/4144) in version 0.25.3 introduced a regression that caused `browser` overrides specified in `package.json` to fail to override relative path names that end in a trailing slash. That behavior change affected the `axios@0.30.0` package. This regression has been fixed, and now has test coverage.
+
+* Add support for certain keywords as TypeScript tuple labels ([#4192](https://github.com/evanw/esbuild/issues/4192))
+
+    Previously esbuild could incorrectly fail to parse certain keywords as TypeScript tuple labels that are parsed by the official TypeScript compiler if they were followed by a `?` modifier. These labels included `function`, `import`, `infer`, `new`, `readonly`, and `typeof`. With this release, these keywords will now be parsed correctly. Here's an example of some affected code:
+
+    ```ts
+    type Foo = [
+      value: any,
+      readonly?: boolean, // This is now parsed correctly
+    ]
+    ```
+
+* Add CSS prefixes for the `stretch` sizing value ([#4184](https://github.com/evanw/esbuild/issues/4184))
+
+    This release adds support for prefixing CSS declarations such as `div { width: stretch }`. That CSS is now transformed into this depending on what the `--target=` setting includes:
+
+    ```css
+    div {
+      width: -webkit-fill-available;
+      width: -moz-available;
+      width: stretch;
+    }
+    ```
+
+## 0.25.4
+
+* Add simple support for CORS to esbuild's development server ([#4125](https://github.com/evanw/esbuild/issues/4125))
+
+    Starting with version 0.25.0, esbuild's development server is no longer configured to serve cross-origin requests. This was a deliberate change to prevent any website you visit from accessing your running esbuild development server. However, this change prevented (by design) certain use cases such as "debugging in production" by having your production website load code from `localhost` where the esbuild development server is running.
+
+    To enable this use case, esbuild is adding a feature to allow [Cross-Origin Resource Sharing](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS) (a.k.a. CORS) for [simple requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS#simple_requests). Specifically, passing your origin to the new `cors` option will now set the `Access-Control-Allow-Origin` response header when the request has a matching `Origin` header. Note that this currently only works for requests that don't send a preflight `OPTIONS` request, as esbuild's development server doesn't currently support `OPTIONS` requests.
+
+    Some examples:
+
+    * **CLI:**
+
+        ```
+        esbuild --servedir=. --cors-origin=https://example.com
+        ```
+
+    * **JS:**
+
+        ```js
+        const ctx = await esbuild.context({})
+        await ctx.serve({
+          servedir: '.',
+          cors: {
+            origin: 'https://example.com',
+          },
+        })
+        ```
+
+    * **Go:**
+
+        ```go
+        ctx, _ := api.Context(api.BuildOptions{})
+        ctx.Serve(api.ServeOptions{
+          Servedir: ".",
+          CORS: api.CORSOptions{
+            Origin: []string{"https://example.com"},
+          },
+        })
+        ```
+
+    The special origin `*` can be used to allow any origin to access esbuild's development server. Note that this means any website you visit will be able to read everything served by esbuild.
+
+* Pass through invalid URLs in source maps unmodified ([#4169](https://github.com/evanw/esbuild/issues/4169))
+
+    This fixes a regression in version 0.25.0 where `sources` in source maps that form invalid URLs were not being passed through to the output. Version 0.25.0 changed the interpretation of `sources` from file paths to URLs, which means that URL parsing can now fail. Previously URLs that couldn't be parsed were replaced with the empty string. With this release, invalid URLs in `sources` should now be passed through unmodified.
+
+* Handle exports named `__proto__` in ES modules ([#4162](https://github.com/evanw/esbuild/issues/4162), [#4163](https://github.com/evanw/esbuild/pull/4163))
+
+    In JavaScript, the special property name `__proto__` sets the prototype when used inside an object literal. Previously esbuild's ESM-to-CommonJS conversion didn't special-case the property name of exports named `__proto__` so the exported getter accidentally became the prototype of the object literal. It's unclear what this affects, if anything, but it's better practice to avoid this by using a computed property name in this case.
+
+    This fix was contributed by [@magic-akari](https://github.com/magic-akari).
+
 ## 0.25.3
 
 * Fix lowered `async` arrow functions before `super()` ([#4141](https://github.com/evanw/esbuild/issues/4141), [#4142](https://github.com/evanw/esbuild/pull/4142))

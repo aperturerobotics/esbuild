@@ -334,7 +334,11 @@ func (service *serviceType) handleIncomingPacket(bytes []byte) {
 				go func() {
 					defer service.keepAliveWaitGroup.Done()
 					defer build.disposeWaitGroup.Done()
-					if err := ctx.Watch(api.WatchOptions{}); err != nil {
+					var options api.WatchOptions
+					if value, ok := request["delay"]; ok {
+						options.Delay = value.(int)
+					}
+					if err := ctx.Watch(options); err != nil {
 						service.sendPacket(encodeErrorPacket(p.id, err))
 					} else {
 						service.sendPacket(encodePacket(packet{
@@ -391,6 +395,11 @@ func (service *serviceType) handleIncomingPacket(bytes []byte) {
 					}
 					if value, ok := request["fallback"]; ok {
 						options.Fallback = value.(string)
+					}
+					if value, ok := request["corsOrigin"].([]interface{}); ok {
+						for _, it := range value {
+							options.CORS.Origin = append(options.CORS.Origin, it.(string))
+						}
 					}
 					if request["onRequest"].(bool) {
 						options.OnRequest = func(args api.ServeOnRequestArgs) {
@@ -1388,8 +1397,9 @@ func decodeLocationToPrivate(value interface{}) *logger.MsgLocation {
 	if namespace == "" {
 		namespace = "file"
 	}
+	file := loc["file"].(string)
 	return &logger.MsgLocation{
-		File:       loc["file"].(string),
+		File:       logger.PrettyPaths{Abs: file, Rel: file},
 		Namespace:  namespace,
 		Line:       loc["line"].(int),
 		Column:     loc["column"].(int),
