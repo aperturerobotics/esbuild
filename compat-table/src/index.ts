@@ -53,6 +53,7 @@ export const jsFeatures = {
   ExportStarAs: true,
   ForAwait: true,
   ForOf: true,
+  FromBase64: true,
   FunctionNameConfigurable: true,
   FunctionOrClassPropertyAccess: true,
   Generator: true,
@@ -100,6 +101,7 @@ export const cssFeatures = {
   InlineStyle: true,
   InsetProperty: true,
   IsPseudoClass: true,
+  MediaRange: true,
   Modern_RGB_HSL: true,
   Nesting: true,
   RebeccaPurple: true,
@@ -116,6 +118,7 @@ export const cssProperties = {
   DHeight: true,
   DHyphens: true,
   DInitialLetter: true,
+  DMask: true,
   DMaskComposite: true,
   DMaskImage: true,
   DMaskOrigin: true,
@@ -300,7 +303,8 @@ const supportMapToVersionRanges = <F extends string>(supportMap: SupportMap<F>):
   return [versionRangeMap, whyNotMap]
 }
 
-const updateGithubDependencies = (): void => {
+const installGitHubDependencies = (): void => {
+  const updateCommits = process.argv.includes('--update')
   const jsonPath = path.join(__dirname, 'package.json')
   const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'))
 
@@ -312,24 +316,30 @@ const updateGithubDependencies = (): void => {
     }
 
     child_process.execFileSync('git', ['fetch'], { cwd: fullPath, stdio: 'inherit' })
-    child_process.execFileSync('git', ['reset', '--hard', '--quiet', 'origin/gh-pages'], { cwd: fullPath, stdio: 'inherit' })
 
-    const commit = child_process.execFileSync('git', ['rev-parse', 'HEAD'], { cwd: fullPath }).toString().trim()
-    jsonData.githubDependencies[repo] = commit
+    if (updateCommits) {
+      child_process.execFileSync('git', ['reset', '--hard', '--quiet', 'origin/gh-pages'], { cwd: fullPath, stdio: 'inherit' })
+      const commit = child_process.execFileSync('git', ['rev-parse', 'HEAD'], { cwd: fullPath }).toString().trim()
+      jsonData.githubDependencies[repo] = commit
+    } else {
+      const commit = jsonData.githubDependencies[repo]
+      child_process.execFileSync('git', ['reset', '--hard', '--quiet', commit], { cwd: fullPath, stdio: 'inherit' })
+    }
   })
 
-  fs.writeFileSync(jsonPath, JSON.stringify(jsonData, null, 2) + '\n')
+  if (updateCommits) {
+    fs.writeFileSync(jsonPath, JSON.stringify(jsonData, null, 2) + '\n')
+  }
 }
 
-if (process.argv.includes('--update')) {
-  updateGithubDependencies()
-}
+// These dependencies are not published on npm and are instead pulled from GitHub (but pinned to a specific commit)
+installGitHubDependencies()
 
-import('./kangax').then(kangax => {
+import('./compat-table').then(compatTable => {
   const js: SupportMap<JSFeature> = {} as SupportMap<JSFeature>
   for (const feature in jsFeatures) js[feature as JSFeature] = {}
 
-  mergeSupportMaps(js, kangax.js)
+  mergeSupportMaps(js, compatTable.js)
   mergeSupportMaps(js, caniuse.js)
   mergeSupportMaps(js, mdn.js)
 
@@ -538,6 +548,9 @@ import('./kangax').then(kangax => {
   js.TopLevelAwait.IOS = { 15: { force: true } }
   js.TopLevelAwait.Safari = { 15: { force: true } }
 
+  // MDN data is incomplete here: https://github.com/mdn/browser-compat-data/issues/28228
+  js.FromBase64.Node = { 25: { force: true } }
+
   const [jsVersionRanges, jsWhyNot] = supportMapToVersionRanges(js)
   generateTableForJS(jsVersionRanges, jsWhyNot)
 })
@@ -551,8 +564,9 @@ mergeSupportMaps(css, mdn.css)
 mergePrefixMaps(cssPrefix, caniuse.cssPrefix)
 mergePrefixMaps(cssPrefix, mdn.cssPrefix)
 
-// MDN data is wrong here, Firefox 127 still has gradient interpolation rendering bugs: https://bugzilla.mozilla.org/show_bug.cgi?id=1904106
-css.GradientInterpolation.Firefox = {}
+// MDN data is wrong here, Firefox still had gradient interpolation rendering
+// bugs until version 137: https://bugzilla.mozilla.org/show_bug.cgi?id=1904106
+css.GradientInterpolation.Firefox = { 137: { force: true } }
 
 const [cssVersionRanges] = supportMapToVersionRanges(css)
 generateTableForCSS(cssVersionRanges, cssPrefix)

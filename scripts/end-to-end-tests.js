@@ -1906,6 +1906,28 @@ for (const minify of [[], ['--minify']]) {
         'in.js': `import foo from './foo'; if (foo() !== (function() { return this })()) throw 'fail'`,
         'foo.js': `module.exports = function() { return this }`,
       }),
+
+      // https://github.com/evanw/esbuild/issues/4348
+      test(['--bundle', '--format=cjs', 'in.js', '--outfile=node.js', '--target=' + target].concat(minify), {
+        'in.js': `
+          var foo = Object.entries({ ...require('./foo') }).join('|')
+          if (foo !== 'a,a|b,b|c,c|d,d|e,e|f,f|g,g|h,h|i,i|j,j') throw 'fail: ' + foo
+        `,
+        'foo.js': `
+          var a = 'a'
+          for (var b = 'b'; 0; ) ;
+          if (true) { var c = 'c' }
+          if (true) var d = 'd'
+          if (false) {} else var e = 'e'
+          var x = 1
+          while (x--) var f = 'f'
+          do var g = 'g'; while (0);
+          for (; x++; ) var h = 'h'
+          for (var y in 'y') var i = 'i'
+          for (var y ${target === 'es5' ? 'in' : 'of'} 'y') var j = 'j'
+          export { a, b, c, d, e, f, g, h, i, j }
+        `,
+      }),
     )
   }
 
@@ -3219,6 +3241,25 @@ tests.push(
       }
     `,
   }),
+
+  // https://github.com/evanw/esbuild/issues/4351
+  test(['in.js', '--outfile=node.js', '--minify'], {
+    'in.js': `
+    function f(x) {
+        d: {
+          e: {
+            try {
+              while (x()) { break d }
+            } catch { break e }
+          }
+          return 2
+        }
+        return 1
+      }
+      if (f(() => 1) !== 1) throw 'fail: 1'
+      if (f('empty') !== 2) throw 'fail: 2'
+    `,
+  }),
 )
 
 // Test cyclic import issues (shouldn't crash on evaluation)
@@ -3363,6 +3404,154 @@ for (const minify of [[], ['--minify-syntax']]) {
         var x = class { static [-1e100] = 1 }; if (x['-1e+100'] !== 1) throw 'fail: -1e100'
         var x = class { static [0xFFFF_FFFF_FFFF] = 1 }; if (x['281474976710655'] !== 1) throw 'fail: 0xFFFF_FFFF_FFFF'
         var x = class { static [-0xFFFF_FFFF_FFFF] = 1 }; if (x['-281474976710655'] !== 1) throw 'fail: -0xFFFF_FFFF_FFFF'
+      `,
+    }),
+    test(['in.js', '--outfile=node.js'].concat(minify), {
+      'in.js': `
+        function test(x) {
+          let log = ''
+          switch (x) {
+            case 0:
+              log += '0'
+            case 1:
+            default:
+              log += '1'
+          }
+          return log
+        }
+        if (test(0) !== '01') throw 'fail: 0'
+        if (test(1) !== '1') throw 'fail: 1'
+        if (test(2) !== '1') throw 'fail: 2'
+      `,
+    }),
+    test(['in.js', '--outfile=node.js'].concat(minify), {
+      'in.js': `
+        function test(x) {
+          let log = ''
+          switch (x) {
+            case 0:
+              log += '0'
+              break
+            case 1:
+            default:
+              log += '1'
+          }
+          return log
+        }
+        if (test(0) !== '0') throw 'fail: 0'
+        if (test(1) !== '1') throw 'fail: 1'
+        if (test(2) !== '1') throw 'fail: 2'
+      `,
+    }),
+    test(['in.js', '--outfile=node.js'].concat(minify), {
+      'in.js': `
+        function test(x) {
+          let log = ''
+          switch (x) {
+            case 0:
+              log += '0'
+            case 1:
+            default:
+              log += '1'
+            case 2:
+              log += '2'
+          }
+          return log
+        }
+        if (test(0) !== '012') throw 'fail: 0'
+        if (test(1) !== '12') throw 'fail: 1'
+        if (test(2) !== '2') throw 'fail: 2'
+        if (test(3) !== '12') throw 'fail: 3'
+      `,
+    }),
+    test(['in.js', '--outfile=node.js'].concat(minify), {
+      'in.js': `
+        function test(x) {
+          let log = ''
+          switch (x) {
+            case 0: // Note: This case must not be removed
+            default:
+              log += '1'
+            case 0:
+              log += '2'
+          }
+          return log
+        }
+        if (test(0) !== '12') throw 'fail: 0'
+        if (test(1) !== '12') throw 'fail: 1'
+      `,
+    }, {
+      expectedStderr: `▲ [WARNING] This case clause will never be evaluated because it duplicates an earlier case clause [duplicate-case]
+
+    in.js:8:12:
+      8 │             case 0:
+        ╵             ~~~~
+
+  The earlier case clause is here:
+
+    in.js:5:12:
+      5 │             case 0: // Note: This case must not be removed
+        ╵             ~~~~
+
+`,
+    }),
+
+    // We potentially need to keep let/const declarations in dead cases
+    test(['in.js', '--outfile=node.js'].concat(minify), {
+      'in.js': `
+        function test() {
+          switch (1) {
+            case 0:
+              var deadVarInSwitch // This must not be removed
+            case 1:
+            case 2:
+              return deadVarInSwitch
+          }
+        }
+        globalThis.deadVarInSwitch = 'fail'
+        if (test() !== undefined) throw 'fail'
+      `,
+    }),
+    test(['in.js', '--outfile=node.js'].concat(minify), {
+      'in.js': `
+        function test() {
+          switch (1) {
+            case 0:
+              let deadLetInSwitch // This must not be removed
+            case 1:
+            case 2:
+              return deadLetInSwitch
+          }
+        }
+        globalThis.deadLetInSwitch = 'fail'
+        try {
+          test()
+          throw 'fail'
+        } catch (e) {
+          if (!(e instanceof ReferenceError))
+            throw e
+        }
+      `,
+    }),
+    test(['in.js', '--outfile=node.js'].concat(minify), {
+      'in.js': `
+        function test() {
+          switch (1) {
+            case 0:
+              const deadConstInSwitch = 0 // This must not be removed (or inlined as a constant)
+            case 1:
+            case 2:
+              return deadConstInSwitch
+          }
+        }
+        globalThis.deadConstInSwitch = 'fail'
+        try {
+          test()
+          throw 'fail'
+        } catch (e) {
+          if (!(e instanceof ReferenceError))
+            throw e
+        }
       `,
     }),
 
@@ -7923,11 +8112,11 @@ for (const length of [0, 1, 2, 3, 4, 5, 6, 7, 8, 256]) {
   `
   const data = Buffer.from([...' '.repeat(length)].map((_, i) => i ^ 0x55))
   tests.push(
-    test(['entry.js', '--bundle', '--outfile=node.js', '--loader:.bin=binary', '--platform=browser'], {
+    test(['entry.js', '--bundle', '--outfile=node.js', '--loader:.bin=binary', '--platform=browser', '--supported:from-base64=false'], {
       'entry.js': code,
       'data.bin': data,
     }),
-    test(['entry.js', '--bundle', '--outfile=node.js', '--loader:.bin=binary', '--platform=node'], {
+    test(['entry.js', '--bundle', '--outfile=node.js', '--loader:.bin=binary', '--platform=node', '--supported:from-base64=false'], {
       'entry.js': code,
       'data.bin': data,
     }),

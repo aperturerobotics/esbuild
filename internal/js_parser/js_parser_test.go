@@ -23,11 +23,11 @@ func expectParseErrorCommon(t *testing.T, contents string, expected string, opti
 		log := logger.NewDeferLog(logger.DeferLogNoVerboseOrDebug, logger.LevelInfo, nil)
 		Parse(log, test.SourceForTest(contents), OptionsFromConfig(&options))
 		msgs := log.Done()
-		text := ""
+		var text strings.Builder
 		for _, msg := range msgs {
-			text += msg.String(logger.OutputOptions{}, logger.TerminalInfo{})
+			text.WriteString(msg.String(logger.OutputOptions{}, logger.TerminalInfo{}))
 		}
-		test.AssertEqualWithDiff(t, text, expected)
+		test.AssertEqualWithDiff(t, text.String(), expected)
 	})
 }
 
@@ -67,13 +67,13 @@ func expectPrintedCommon(t *testing.T, contents string, expected string, options
 		options.OmitRuntimeForTests = true
 		tree, ok := Parse(log, test.SourceForTest(contents), OptionsFromConfig(&options))
 		msgs := log.Done()
-		text := ""
+		var text strings.Builder
 		for _, msg := range msgs {
 			if msg.Kind != logger.Warning {
-				text += msg.String(logger.OutputOptions{}, logger.TerminalInfo{})
+				text.WriteString(msg.String(logger.OutputOptions{}, logger.TerminalInfo{}))
 			}
 		}
-		test.AssertEqualWithDiff(t, text, "")
+		test.AssertEqualWithDiff(t, text.String(), "")
 		if !ok {
 			t.Fatal("Parse error")
 		}
@@ -1208,7 +1208,8 @@ func TestASI(t *testing.T) {
 	expectPrinted(t, "if (0) let\nx = 0", "if (0) let;\nx = 0;\n")
 	expectPrinted(t, "if (0) let\n{x}", "if (0) let;\n{\n  x;\n}\n")
 	expectParseError(t, "if (0) let\n{x} = 0", "<stdin>: ERROR: Unexpected \"=\"\n")
-	expectParseError(t, "if (0) let\n[x] = 0", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
+	expectParseError(t, "if (0) let\n[x] = 0", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n"+
+		"NOTE: Wrap this declaration in a block statement to use it here.\n")
 	expectPrinted(t, "function *foo() { if (0) let\nyield 0 }", "function* foo() {\n  if (0) let;\n  yield 0;\n}\n")
 	expectPrinted(t, "async function foo() { if (0) let\nawait 0 }", "async function foo() {\n  if (0) let;\n  await 0;\n}\n")
 
@@ -1460,13 +1461,16 @@ func TestLexicalDecl(t *testing.T) {
 		"do label: label2: %s \n while(0)",
 	}
 
+	singleStmtError := "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n" +
+		"NOTE: Wrap this declaration in a block statement to use it here.\n"
+
 	for _, context := range singleStmtContext {
-		expectParseError(t, fmt.Sprintf(context, "const x = 0"), "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-		expectParseError(t, fmt.Sprintf(context, "let x"), "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-		expectParseError(t, fmt.Sprintf(context, "class X {}"), "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-		expectParseError(t, fmt.Sprintf(context, "function* x() {}"), "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-		expectParseError(t, fmt.Sprintf(context, "async function x() {}"), "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-		expectParseError(t, fmt.Sprintf(context, "async function* x() {}"), "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
+		expectParseError(t, fmt.Sprintf(context, "const x = 0"), singleStmtError)
+		expectParseError(t, fmt.Sprintf(context, "let x"), singleStmtError)
+		expectParseError(t, fmt.Sprintf(context, "class X {}"), singleStmtError)
+		expectParseError(t, fmt.Sprintf(context, "function* x() {}"), singleStmtError)
+		expectParseError(t, fmt.Sprintf(context, "async function x() {}"), singleStmtError)
+		expectParseError(t, fmt.Sprintf(context, "async function* x() {}"), singleStmtError)
 	}
 
 	expectPrinted(t, "function f() {}", "function f() {\n}\n")
@@ -1477,37 +1481,37 @@ func TestLexicalDecl(t *testing.T) {
 	expectPrinted(t, "{function* f() {}} let f", "{\n  function* f() {\n  }\n}\nlet f;\n")
 	expectPrinted(t, "{async function f() {}} let f", "{\n  async function f() {\n  }\n}\nlet f;\n")
 
-	expectParseError(t, "if (1) label: function f() {} let f", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "if (1) label: label2: function f() {} let f", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "if (0) ; else label: function f() {} let f", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "if (0) ; else label: label2: function f() {} let f", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
+	expectParseError(t, "if (1) label: function f() {} let f", singleStmtError)
+	expectParseError(t, "if (1) label: label2: function f() {} let f", singleStmtError)
+	expectParseError(t, "if (0) ; else label: function f() {} let f", singleStmtError)
+	expectParseError(t, "if (0) ; else label: label2: function f() {} let f", singleStmtError)
 
-	expectParseError(t, "for (;;) function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "for (x in y) function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "for (x of y) function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "for await (x of y) function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "with (1) function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "while (1) function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "do function f() {} while (0)", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
+	expectParseError(t, "for (;;) function f() {}", singleStmtError)
+	expectParseError(t, "for (x in y) function f() {}", singleStmtError)
+	expectParseError(t, "for (x of y) function f() {}", singleStmtError)
+	expectParseError(t, "for await (x of y) function f() {}", singleStmtError)
+	expectParseError(t, "with (1) function f() {}", singleStmtError)
+	expectParseError(t, "while (1) function f() {}", singleStmtError)
+	expectParseError(t, "do function f() {} while (0)", singleStmtError)
 
 	fnLabelAwait := "<stdin>: ERROR: Function declarations inside labels cannot be used in an ECMAScript module\n" +
 		"<stdin>: NOTE: This file is considered to be an ECMAScript module because of the top-level \"await\" keyword here:\n"
 
-	expectParseError(t, "for (;;) label: function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "for (x in y) label: function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "for (x of y) label: function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "for await (x of y) label: function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n"+fnLabelAwait)
-	expectParseError(t, "with (1) label: function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "while (1) label: function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "do label: function f() {} while (0)", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
+	expectParseError(t, "for (;;) label: function f() {}", singleStmtError)
+	expectParseError(t, "for (x in y) label: function f() {}", singleStmtError)
+	expectParseError(t, "for (x of y) label: function f() {}", singleStmtError)
+	expectParseError(t, "for await (x of y) label: function f() {}", singleStmtError+fnLabelAwait)
+	expectParseError(t, "with (1) label: function f() {}", singleStmtError)
+	expectParseError(t, "while (1) label: function f() {}", singleStmtError)
+	expectParseError(t, "do label: function f() {} while (0)", singleStmtError)
 
-	expectParseError(t, "for (;;) label: label2: function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "for (x in y) label: label2: function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "for (x of y) label: label2: function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "for await (x of y) label: label2: function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n"+fnLabelAwait)
-	expectParseError(t, "with (1) label: label2: function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "while (1) label: label2: function f() {}", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
-	expectParseError(t, "do label: label2: function f() {} while (0)", "<stdin>: ERROR: Cannot use a declaration in a single-statement context\n")
+	expectParseError(t, "for (;;) label: label2: function f() {}", singleStmtError)
+	expectParseError(t, "for (x in y) label: label2: function f() {}", singleStmtError)
+	expectParseError(t, "for (x of y) label: label2: function f() {}", singleStmtError)
+	expectParseError(t, "for await (x of y) label: label2: function f() {}", singleStmtError+fnLabelAwait)
+	expectParseError(t, "with (1) label: label2: function f() {}", singleStmtError)
+	expectParseError(t, "while (1) label: label2: function f() {}", singleStmtError)
+	expectParseError(t, "do label: label2: function f() {} while (0)", singleStmtError)
 
 	// Test direct "eval"
 	expectPrinted(t, "if (foo) { function x() {} }", "if (foo) {\n  let x = function() {\n  };\n  var x = x;\n}\n")
@@ -1861,7 +1865,7 @@ func TestSuperCall(t *testing.T) {
 	expectPrintedMangleTarget(t, 2015, "class A extends B { x = 1; constructor() { super(); if (c) throw c } }",
 		"class A extends B {\n  constructor() {\n    super();\n    __publicField(this, \"x\", 1);\n    if (c) throw c;\n  }\n}\n")
 	expectPrintedMangleTarget(t, 2015, "class A extends B { x = 1; constructor() { super(); switch (c) { case 0: throw c } } }",
-		"class A extends B {\n  constructor() {\n    super();\n    __publicField(this, \"x\", 1);\n    switch (c) {\n      case 0:\n        throw c;\n    }\n  }\n}\n")
+		"class A extends B {\n  constructor() {\n    super();\n    __publicField(this, \"x\", 1);\n    if (c === 0)\n      throw c;\n  }\n}\n")
 	expectPrintedMangleTarget(t, 2015, "class A extends B { x = 1; constructor() { super(); while (!c) throw c } }",
 		"class A extends B {\n  constructor() {\n    super();\n    __publicField(this, \"x\", 1);\n    for (; !c; ) throw c;\n  }\n}\n")
 	expectPrintedMangleTarget(t, 2015, "class A extends B { x = 1; constructor() { super(); return c } }",
@@ -2791,7 +2795,7 @@ func TestSwitch(t *testing.T) {
 	expectPrintedMangle(t, "switch (1) { case 0: a(); break; case 1: b(); break }", "b();\n")
 	expectPrintedMangle(t, "switch (2) { case 0: a(); break; case 1: b(); break }", "")
 
-	expectPrintedMangle(t, "switch (0) { case 0: a(); case 1: b(); break }", "switch (0) {\n  case 0:\n    a();\n  case 1:\n    b();\n    break;\n}\n")
+	expectPrintedMangle(t, "switch (0) { case 0: a(); case 1: b(); break }", "a(), b();\n")
 	expectPrintedMangle(t, "switch (1) { case 0: a(); case 1: b(); break }", "b();\n")
 	expectPrintedMangle(t, "switch (2) { case 0: a(); case 1: b(); break }", "")
 
@@ -2822,6 +2826,16 @@ func TestSwitch(t *testing.T) {
 	// For more info, see: https://github.com/evanw/esbuild/issues/4088
 	expectPrinted(t, "switch (0) { case x(() => 1): y = () => 2; case x(() => 3): y = () => 4 }",
 		"switch (0) {\n  case x(() => 1):\n    y = () => 2;\n  case x(() => 3):\n    y = () => 4;\n}\n")
+
+	// The specification was changed after implementations shipped the feature.
+	// Specifically "using" inside "case" and "default" inside "switch" is no
+	// longer allowed: https://github.com/rbuckton/ecma262/pull/14
+	usingError := "<stdin>: ERROR: Cannot use a \"using\" declaration directly inside a switch case\n" +
+		"NOTE: Wrap this declaration in a block statement to use it here.\n"
+	expectParseError(t, "switch (x) { case 0: using y = z }\n", usingError)
+	expectParseError(t, "switch (x) { case 0: await using y = z }\n", usingError)
+	expectPrinted(t, "switch (x) { case 0: { using y = z } }\n", "switch (x) {\n  case 0: {\n    using y = z;\n  }\n}\n")
+	expectPrinted(t, "switch (x) { case 0: { await using y = z } }\n", "switch (x) {\n  case 0: {\n    await using y = z;\n  }\n}\n")
 }
 
 func TestConstantFolding(t *testing.T) {
@@ -3650,8 +3664,37 @@ func TestMangleBlock(t *testing.T) {
 }
 
 func TestMangleSwitch(t *testing.T) {
-	expectPrintedMangle(t, "x(); switch (y) { case z: return w; }", "switch (x(), y) {\n  case z:\n    return w;\n}\n")
-	expectPrintedMangle(t, "if (t) { x(); switch (y) { case z: return w; } }", "if (t)\n  switch (x(), y) {\n    case z:\n      return w;\n  }\n")
+	expectPrintedMangle(t, "x(); switch (y) { case z: return w; }", "if (x(), y === z)\n  return w;\n")
+	expectPrintedMangle(t, "if (t) { x(); switch (y) { case z: return w; } }", "if (t && (x(), y === z))\n  return w;\n")
+
+	// We potentially need to keep let/const declarations in dead cases
+	expectPrintedMangle(t, "switch (1) { case 0: x; case 1: return x }", "return x;\n")
+	expectPrintedMangle(t, "switch (1) { case 0: var x; case 1: return x }", "switch (1) {\n  case 0:\n    var x;\n  case 1:\n    return x;\n}\n")
+	expectPrintedMangle(t, "switch (1) { case 0: let x; case 1: return x }", "switch (1) {\n  case 0:\n    let x;\n  case 1:\n    return x;\n}\n")
+	expectPrintedMangle(t, "switch (1) { case 0: const x = 0; case 1: return x }", "switch (1) {\n  case 0:\n    const x = 0;\n  case 1:\n    return x;\n}\n")
+	expectPrintedMangle(t, "switch (2) { case 0: var x; case 1: return x }", "if (0)\n  var x;\n")
+	expectPrintedMangle(t, "switch (2) { case 0: let x; case 1: return x }", "")
+	expectPrintedMangle(t, "switch (2) { case 0: const x = 0; case 1: return x }", "")
+
+	// https://github.com/evanw/esbuild/issues/4359
+	expectPrintedMangle(t, "switch (x) { case 0: a(); break; default: b() }", "x === 0 ? a() : b();\n")
+	expectPrintedMangle(t, "switch (x) { default: a(); break; case 0: b() }", "x === 0 ? b() : a();\n")
+	expectPrintedMangle(t, "switch (x) { case p: a(); break; case q: default: b() }", "switch (x) {\n  case p:\n    a();\n    break;\n  case q:\n  default:\n    b();\n}\n")
+	expectPrintedMangle(t, "switch (x) { case 0: a(); break; case 1: case 2: default: b() }", "x === 0 ? a() : b();\n")
+	expectPrintedMangle(t, "switch (x) { case 0: default: a(); break; case 0: b() }", "switch (x) {\n  case 0:\n  default:\n    a();\n    break;\n  case 0:\n    b();\n}\n")
+	expectPrintedMangle(t, "switch (x) { case 0: if (y) break; a(); break; default: b() }",
+		"switch (x) {\n  case 0:\n    if (y) break;\n    a();\n    break;\n  default:\n    b();\n}\n")
+	expectPrintedMangle(t, "switch (x) { case 0: a(); break; default: if (y) break; b() }",
+		"switch (x) {\n  case 0:\n    a();\n    break;\n  default:\n    if (y) break;\n    b();\n}\n")
+
+	// https://github.com/evanw/esbuild/issues/4176
+	expectPrintedMangle(t, "switch (1) { case 0: case 1: case 2: x() }", "x();\n")
+	expectPrintedMangle(t, "switch (1) { case 0: x(); case 1: case 2: y() }", "y();\n")
+	expectPrintedMangle(t, "switch (1) { case 0: x(); case 1: y(); case 2: z() }", "y(), z();\n")
+	expectPrintedMangle(t, "switch (1) { case 0: x(); default: y(); case 2: z() }", "y(), z();\n")
+	expectPrintedMangle(t, "switch (1) { case 0: x(); case 1: y(); break; case 2: z() }", "y();\n")
+	expectPrintedMangle(t, "switch (1) { case 0: x(); default: y(); break; case 2: z() }", "y();\n")
+	expectPrintedMangle(t, "switch (0) { case 0: case y: x() }", "switch (0) {\n  case 0:\n  case y:\n    x();\n}\n")
 }
 
 func TestMangleAddEmptyString(t *testing.T) {
@@ -4596,7 +4639,7 @@ func TestMangleObject(t *testing.T) {
 	expectPrintedNormalAndMangle(t, "x = {a, ...()=>{}, b}", "x = { a, ...() => {\n}, b };\n", "x = { a, b };\n")
 	expectPrintedNormalAndMangle(t, "x = {a, ...'123', b}", "x = { a, ...\"123\", b };\n", "x = { a, ...\"123\", b };\n")
 	expectPrintedNormalAndMangle(t, "x = {a, ...[1, 2, 3], b}", "x = { a, ...[1, 2, 3], b };\n", "x = { a, ...[1, 2, 3], b };\n")
-	expectPrintedNormalAndMangle(t, "x = {a, ...(()=>{})(), b}", "x = { a, .../* @__PURE__ */ (() => {\n})(), b };\n", "x = { a, .../* @__PURE__ */ (() => {\n})(), b };\n")
+	expectPrintedNormalAndMangle(t, "x = {a, ...(()=>{})(), b}", "x = { a, .../* @__PURE__ */ (() => {\n})(), b };\n", "x = { a, b };\n")
 
 	// Check simple cases of object simplification (advanced cases are checked in end-to-end tests)
 	expectPrintedNormalAndMangle(t, "x = {['y']: z}.y", "x = { [\"y\"]: z }.y;\n", "x = { y: z }.y;\n")
@@ -4644,11 +4687,13 @@ func TestMangleArrow(t *testing.T) {
 }
 
 func TestMangleIIFE(t *testing.T) {
-	expectPrintedNormalAndMangle(t, "var a = (() => {})()", "var a = /* @__PURE__ */ (() => {\n})();\n", "var a = /* @__PURE__ */ (() => {\n})();\n")
-	expectPrintedNormalAndMangle(t, "(() => {})()", "/* @__PURE__ */ (() => {\n})();\n", "")
+	expectPrintedNormalAndMangle(t, "var a = (() => {})()", "var a = /* @__PURE__ */ (() => {\n})();\n", "var a = void 0;\n")
+	expectPrintedNormalAndMangle(t, "(() => a)()", "(() => a)();\n", "a;\n")
+	expectPrintedNormalAndMangle(t, "(() => a)(...[])", "(() => a)(...[]);\n", "a;\n")
 	expectPrintedNormalAndMangle(t, "(() => a())()", "(() => a())();\n", "a();\n")
 	expectPrintedNormalAndMangle(t, "(() => { a() })()", "(() => {\n  a();\n})();\n", "a();\n")
 	expectPrintedNormalAndMangle(t, "(() => { return a() })()", "(() => {\n  return a();\n})();\n", "a();\n")
+	expectPrintedNormalAndMangle(t, "(() => {})()", "/* @__PURE__ */ (() => {\n})();\n", "")
 	expectPrintedNormalAndMangle(t, "(() => { let b = a; b() })()", "(() => {\n  let b = a;\n  b();\n})();\n", "a();\n")
 	expectPrintedNormalAndMangle(t, "(() => { let b = a; return b() })()", "(() => {\n  let b = a;\n  return b();\n})();\n", "a();\n")
 	expectPrintedNormalAndMangle(t, "(async () => {})()", "(async () => {\n})();\n", "")
@@ -4664,8 +4709,32 @@ func TestMangleIIFE(t *testing.T) {
 	expectPrintedNormalAndMangle(t, "(async function() { a() })()", "(async function() {\n  a();\n})();\n", "(async function() {\n  a();\n})();\n")
 
 	expectPrintedNormalAndMangle(t, "(() => x)()", "(() => x)();\n", "x;\n")
+	expectPrintedNormalAndMangle(t, "(() => { return x })()", "(() => {\n  return x;\n})();\n", "x;\n")
+	expectPrintedNormalAndMangle(t, "(() => { x })()", "(() => {\n  x;\n})();\n", "x;\n")
+
+	expectPrintedNormalAndMangle(t, "return (() => x)()", "return (() => x)();\n", "return x;\n")
+	expectPrintedNormalAndMangle(t, "return (() => { return x })()", "return (() => {\n  return x;\n})();\n", "return x;\n")
+	expectPrintedNormalAndMangle(t, "return (() => { x })()", "return (() => {\n  x;\n})();\n", "return void x;\n")
+
 	expectPrintedNormalAndMangle(t, "/* @__PURE__ */ (() => x)()", "/* @__PURE__ */ (() => x)();\n", "")
 	expectPrintedNormalAndMangle(t, "/* @__PURE__ */ (() => x)(y, z)", "/* @__PURE__ */ (() => x)(y, z);\n", "y, z;\n")
+
+	// https://github.com/evanw/esbuild/issues/4354
+	expectPrintedNormalAndMangle(t, "let x = () => { let y = () => z(); y() }",
+		"let x = () => {\n  let y = () => z();\n  y();\n};\n",
+		"let x = () => {\n  z();\n};\n")
+	expectPrintedNormalAndMangle(t, "let x = () => { let y = () => z(); return y() }",
+		"let x = () => {\n  let y = () => z();\n  return y();\n};\n",
+		"let x = () => z();\n")
+	expectPrintedNormalAndMangle(t, "let x = () => { let y = () => { z() }; y() }",
+		"let x = () => {\n  let y = () => {\n    z();\n  };\n  y();\n};\n",
+		"let x = () => {\n  z();\n};\n")
+	expectPrintedNormalAndMangle(t, "let x = () => { let y = () => { z() }; return y() }",
+		"let x = () => {\n  let y = () => {\n    z();\n  };\n  return y();\n};\n",
+		"let x = () => {\n  z();\n};\n")
+	expectPrintedNormalAndMangle(t, "let x = () => { let y = () => { z() }; let x = y(); foo(x) }",
+		"let x = () => {\n  let y = () => {\n    z();\n  };\n  let x = y();\n  foo(x);\n};\n",
+		"let x = () => {\n  let x = void z();\n  foo(x);\n};\n")
 }
 
 func TestMangleTemplate(t *testing.T) {
@@ -5326,7 +5395,7 @@ func TestMangleInlineLocals(t *testing.T) {
 	check("let x = arg0; throw x;", "throw arg0;")
 	check("let x = arg0; return x;", "return arg0;")
 	check("let x = arg0; if (x) return 1;", "if (arg0) return 1;")
-	check("let x = arg0; switch (x) { case 0: return 1; }", "switch (arg0) {\n  case 0:\n    return 1;\n}")
+	check("let x = arg0; switch (x) { case 0: return 1; }", "if (arg0 === 0)\n  return 1;")
 	check("let x = arg0; let y = x; return y + y;", "let y = arg0;\nreturn y + y;")
 
 	// Loops must not be substituted into because they evaluate multiple times
@@ -6665,9 +6734,26 @@ func TestMangleTry(t *testing.T) {
 	expectPrintedMangle(t, "try {} finally { let x = foo() }", "{\n  let x = foo();\n}\n")
 	expectPrintedMangle(t, "try {} catch (e) { foo() } finally { let x = bar() }", "{\n  let x = bar();\n}\n")
 
+	expectPrintedMangle(t, "try { foo() } catch {}", "try {\n  foo();\n} catch {\n}\n")
+	expectPrintedMangle(t, "try { foo() } catch {} finally {}", "try {\n  foo();\n} catch {\n}\n")
+	expectPrintedMangle(t, "try { foo() } finally {}", "foo();\n")
+
+	expectPrintedMangle(t, "try { var x = foo() } catch {}", "try {\n  var x = foo();\n} catch {\n}\n")
+	expectPrintedMangle(t, "try { var x = foo() } catch {} finally {}", "try {\n  var x = foo();\n} catch {\n}\n")
+	expectPrintedMangle(t, "try { var x = foo() } finally {}", "var x = foo();\n")
+
+	expectPrintedMangle(t, "try { let x = foo() } catch {}", "try {\n  let x = foo();\n} catch {\n}\n")
+	expectPrintedMangle(t, "try { let x = foo() } catch {} finally {}", "try {\n  let x = foo();\n} catch {\n}\n")
+	expectPrintedMangle(t, "try { let x = foo() } finally {}", "{\n  let x = foo();\n}\n")
+
 	// The Kotlin compiler apparently generates code like this.
 	// See https://github.com/evanw/esbuild/issues/4064 for info.
 	expectPrintedMangle(t, "x: try { while (true) ; break x } catch {}", "x: try {\n  for (; ; ) ;\n  break x;\n} catch {\n}\n")
+
+	// The TeaVM compiler apparently generates code like this.
+	// See https://github.com/evanw/esbuild/issues/4351 for info.
+	expectPrintedMangle(t, "d: { e: { try { while (1) { break d } } catch { break e } } }",
+		"d:\n  e:\n    try {\n      for (; ; )\n        break d;\n    } catch {\n      break e;\n    }\n")
 }
 
 func TestAutoPureForObjectCreate(t *testing.T) {
@@ -6749,6 +6835,18 @@ func TestAutoPureForDate(t *testing.T) {
 	expectPrinted(t, "new Date(foo)", "new Date(foo);\n")
 	expectPrinted(t, "new Date(foo``)", "new Date(foo``);\n")
 	expectPrinted(t, "new Date(foo ? x : y)", "new Date(foo ? x : y);\n")
+}
+
+func TestAutoPureForRegExpEscape(t *testing.T) {
+	expectPrinted(t, "RegExp.escape('x')", "/* @__PURE__ */ RegExp.escape(\"x\");\n")
+	expectPrinted(t, "RegExp.escape(`${x}`)", "/* @__PURE__ */ RegExp.escape(`${x}`);\n")
+	expectPrinted(t, "RegExp.escape(x ? 'y' : 'z')", "/* @__PURE__ */ RegExp.escape(x ? \"y\" : \"z\");\n")
+
+	expectPrinted(t, "RegExp.escape()", "RegExp.escape();\n")
+	expectPrinted(t, "RegExp.escape(x`y`)", "RegExp.escape(x`y`);\n")
+	expectPrinted(t, "RegExp.escape('x', 'y')", "RegExp.escape(\"x\", \"y\");\n")
+	expectPrinted(t, "RegExp.escape(x ? 'y' : z)", "RegExp.escape(x ? \"y\" : z);\n")
+	expectPrinted(t, "RegExp.escape(x ? y : 'z')", "RegExp.escape(x ? y : \"z\");\n")
 }
 
 // See: https://github.com/tc39/proposal-explicit-resource-management

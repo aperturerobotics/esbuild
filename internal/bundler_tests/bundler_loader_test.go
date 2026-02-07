@@ -1321,6 +1321,39 @@ func TestWithTypeJSONOverrideLoaderGlob(t *testing.T) {
 	})
 }
 
+func TestWithTypeBytesOverrideLoader(t *testing.T) {
+	loader_suite.expectBundled(t, bundled{
+		files: map[string]string{
+			"/entry.js": `
+				import foo from './foo.js' with { type: 'bytes' }
+				console.log(foo)
+			`,
+			"/foo.js": `export default 'js'`,
+		},
+		entryPaths: []string{"/entry.js"},
+		options: config.Options{
+			Mode:          config.ModeBundle,
+			AbsOutputFile: "/out.js",
+		},
+	})
+}
+
+func TestWithTypeBytesOverrideLoaderGlob(t *testing.T) {
+	loader_suite.expectBundled(t, bundled{
+		files: map[string]string{
+			"/entry.js": `
+				import("./foo" + bar, { with: { type: 'bytes' } }).then(console.log)
+			`,
+			"/foo.js": `export default 'js'`,
+		},
+		entryPaths: []string{"/entry.js"},
+		options: config.Options{
+			Mode:          config.ModeBundle,
+			AbsOutputFile: "/out.js",
+		},
+	})
+}
+
 func TestWithBadType(t *testing.T) {
 	loader_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -1869,6 +1902,32 @@ func TestLoaderInlineSourceMapAbsolutePathIssue4075Windows(t *testing.T) {
 			Mode:         config.ModeBundle,
 			SourceMap:    config.SourceMapLinkedWithComment,
 			AbsOutputDir: "C:\\out",
+		},
+	})
+}
+
+// See: https://github.com/evanw/esbuild/issues/4370
+func TestLoaderDataURLHashSuffixIssue4370(t *testing.T) {
+	loader_suite.expectBundled(t, bundled{
+		files: map[string]string{
+			"/icons.css": `
+				.triangle {
+					width: 10px;
+					height: 10px;
+					background: currentColor;
+					clip-path: url(./triangle.svg#x);
+				}
+			`,
+			"/triangle.svg": `<svg xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="x"><path d="M0 0H10V10Z"/></clipPath></defs></svg>`,
+		},
+		entryPaths: []string{"/icons.css"},
+		options: config.Options{
+			Mode:         config.ModeBundle,
+			AbsOutputDir: "/out/",
+			ExtensionToLoader: map[string]config.Loader{
+				".css": config.LoaderCSS,
+				".svg": config.LoaderDataURL,
+			},
 		},
 	})
 }

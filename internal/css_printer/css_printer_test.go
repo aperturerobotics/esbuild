@@ -1,6 +1,7 @@
 package css_printer
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/evanw/esbuild/internal/ast"
@@ -19,13 +20,13 @@ func expectPrintedCommon(t *testing.T, name string, contents string, expected st
 			MinifyWhitespace: options.MinifyWhitespace,
 		}))
 		msgs := log.Done()
-		text := ""
+		var text strings.Builder
 		for _, msg := range msgs {
 			if msg.Kind == logger.Error {
-				text += msg.String(logger.OutputOptions{}, logger.TerminalInfo{})
+				text.WriteString(msg.String(logger.OutputOptions{}, logger.TerminalInfo{}))
 			}
 		}
-		test.AssertEqualWithDiff(t, text, "")
+		test.AssertEqualWithDiff(t, text.String(), "")
 		symbols := ast.NewSymbolMap(1)
 		symbols.SymbolsForSource[0] = tree.Symbols
 		result := Print(tree, symbols, options)
@@ -328,13 +329,23 @@ func TestAtImport(t *testing.T) {
 	expectPrinted(t, "@import \"foo.css\";", "@import \"foo.css\";\n")
 	expectPrinted(t, "@import url(foo.css);", "@import \"foo.css\";\n")
 	expectPrinted(t, "@import url(\"foo.css\");", "@import \"foo.css\";\n")
-	expectPrinted(t, "@import url(\"foo.css\") print;", "@import \"foo.css\" print;\n")
+	expectPrinted(t, "@import url(\"foo.css\") (a < 1);", "@import \"foo.css\" (a < 1);\n")
+	expectPrinted(t, "@import url(\"foo.css\") supports(foo) (a < 1);", "@import \"foo.css\" supports(foo) (a < 1);\n")
+	expectPrinted(t, "@import url(\"foo.css\") layer;", "@import \"foo.css\" layer;\n")
+	expectPrinted(t, "@import url(\"foo.css\") layer (a < 1);", "@import \"foo.css\" layer (a < 1);\n")
+	expectPrinted(t, "@import url(\"foo.css\") layer supports(foo);", "@import \"foo.css\" layer supports(foo);\n")
+	expectPrinted(t, "@import url(\"foo.css\") layer supports(foo) (a < 1);", "@import \"foo.css\" layer supports(foo) (a < 1);\n")
 
 	expectPrintedMinify(t, "@import\"foo.css\";", "@import\"foo.css\";")
 	expectPrintedMinify(t, "@import \"foo.css\";", "@import\"foo.css\";")
 	expectPrintedMinify(t, "@import url(foo.css);", "@import\"foo.css\";")
 	expectPrintedMinify(t, "@import url(\"foo.css\");", "@import\"foo.css\";")
-	expectPrintedMinify(t, "@import url(\"foo.css\") print;", "@import\"foo.css\"print;")
+	expectPrintedMinify(t, "@import url(\"foo.css\") (a < 1);", "@import\"foo.css\"(a<1);")
+	expectPrintedMinify(t, "@import url(\"foo.css\") supports(foo) (a < 1);", "@import\"foo.css\"supports(foo) (a<1);")
+	expectPrintedMinify(t, "@import url(\"foo.css\") layer;", "@import\"foo.css\"layer;")
+	expectPrintedMinify(t, "@import url(\"foo.css\") layer (a < 1);", "@import\"foo.css\"layer (a<1);")
+	expectPrintedMinify(t, "@import url(\"foo.css\") layer supports(foo);", "@import\"foo.css\"layer supports(foo);")
+	expectPrintedMinify(t, "@import url(\"foo.css\") layer supports(foo) (a < 1);", "@import\"foo.css\"layer supports(foo) (a<1);")
 }
 
 func TestAtKeyframes(t *testing.T) {
@@ -349,6 +360,28 @@ func TestAtMedia(t *testing.T) {
 	expectPrinted(t, "@media screen{div{color:red}}", "@media screen {\n  div {\n    color: red;\n  }\n}\n")
 	expectPrintedMinify(t, "@media screen { div { color: red } }", "@media screen{div{color:red}}")
 	expectPrintedMinify(t, "@media screen{div{color:red}}", "@media screen{div{color:red}}")
+
+	expectPrintedMinify(t, "@media (a) {div{color:red}}", "@media(a){div{color:red}}")
+	expectPrintedMinify(t, "@media (a) or (b) {div{color:red}}", "@media(a)or (b){div{color:red}}")
+	expectPrintedMinify(t, "@media (a) and (b) {div{color:red}}", "@media(a)and (b){div{color:red}}")
+	expectPrintedMinify(t, "@media not a {div{color:red}}", "@media not a{div{color:red}}")
+	expectPrintedMinify(t, "@media not a and (b) and (c) {div{color:red}}", "@media not a and (b)and (c){div{color:red}}")
+	expectPrintedMinify(t, "@media not (a) {div{color:red}}", "@media not (a){div{color:red}}")
+	expectPrintedMinify(t, "@media not ( (a) or (b) ) {div{color:red}}", "@media not ((a)or (b)){div{color:red}}")
+	expectPrintedMinify(t, "@media not ( (a) and (b) ) {div{color:red}}", "@media not ((a)and (b)){div{color:red}}")
+
+	expectPrintedMinify(t, "@media (width < 2px) {div{color:red}}", "@media(width<2px){div{color:red}}")
+	expectPrintedMinify(t, "@media (1px < width) {div{color:red}}", "@media(1px<width){div{color:red}}")
+	expectPrintedMinify(t, "@media (1px < width < 2px) {div{color:red}}", "@media(1px<width<2px){div{color:red}}")
+	expectPrintedMinify(t, "@media junk(1, 2, 3) {div{color:red}}", "@media junk(1,2,3){div{color:red}}")
+}
+
+func TestAtScope(t *testing.T) {
+	expectPrinted(t, "@scope { div { color: red } }", "@scope {\n  div {\n    color: red;\n  }\n}\n")
+	expectPrinted(t, "@scope (a, .b) to (c > *) { div { color: red } }", "@scope (a, .b) to (c > *) {\n  div {\n    color: red;\n  }\n}\n")
+
+	expectPrintedMinify(t, "@scope { div { color: red } }", "@scope{div{color:red}}")
+	expectPrintedMinify(t, "@scope (a, .b) to (c > *) { div { color: red } }", "@scope(a,.b)to (c>*){div{color:red}}")
 }
 
 func TestAtFontFace(t *testing.T) {

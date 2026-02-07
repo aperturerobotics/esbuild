@@ -653,8 +653,40 @@ use(isNotPure);
 })();
 
 ================================================================================
+TestDCEOfIteratorSuperclassIssue4310
+---------- /out/entry.js ----------
+// entry.js
+var Keep = class extends NotIterator {
+};
+
+================================================================================
 TestDCEOfNegatedBigints
 ---------- /out/entry.js ----------
+
+================================================================================
+TestDCEOfSymbolCtorCall
+---------- /out.js ----------
+// entry.js
+var n0 = Symbol({});
+var n1 = Symbol(/./);
+var n2 = Symbol(() => 0);
+var n3 = Symbol(x);
+var n4 = new Symbol("abc");
+var n5 = Symbol(1, 2, 3);
+var n6 = /* @__PURE__ */ Symbol((() => Math.random() < 0.5)() ? "x" : "y");
+
+================================================================================
+TestDCEOfSymbolForCall
+---------- /out.js ----------
+// entry.js
+var n0 = Symbol.for();
+var n1 = Symbol.for({});
+var n2 = Symbol.for(/./);
+var n3 = Symbol.for(() => 0);
+var n4 = Symbol.for(x);
+var n5 = new Symbol.for("abc");
+var n6 = Symbol.for(1, 2, 3);
+var n7 = /* @__PURE__ */ Symbol.for((() => Math.random() < 0.5)() ? "x" : "y");
 
 ================================================================================
 TestDCEOfSymbolInstances
@@ -1482,6 +1514,11 @@ function keep(x) {
 console.log(keep(1));
 keep(foo());
 keep(1);
+
+---------- /out/identity-simplify-unused-issue-4287.js ----------
+// identity-simplify-unused-issue-4287.js
+foo();
+void 0;
 
 ================================================================================
 TestJSONLoaderRemoveUnused
