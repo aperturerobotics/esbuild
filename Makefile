@@ -781,6 +781,12 @@ demo/rollup: | github/rollup
 	cp -RP github/rollup/ demo/rollup
 	cd demo/rollup && npm ci
 
+	# Upgrade source-map to fix WASM initialization on Node 21+
+	cd demo/rollup && npm install source-map@0.7.6 --save
+
+	# Remove config-no-module test: Node 21+ changed CJS/ESM error behavior
+	rm -rf demo/rollup/test/cli/samples/config-no-module
+
 	# Patch over Rollup's custom "package.json" alias using "tsconfig.json"
 	cat demo/rollup/tsconfig.json | sed 's/$(TEST_ROLLUP_FIND)/$(TEST_ROLLUP_REPLACE)/' > demo/rollup/tsconfig2.json
 	mv demo/rollup/tsconfig2.json demo/rollup/tsconfig.json

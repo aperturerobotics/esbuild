@@ -293,6 +293,11 @@ this. If that fails, you need to remove the "--no-optional" flag to use esbuild.
 }
 
 checkAndPreparePackage().then(() => {
+  // Skip version validation when using a manual binary path override since
+  // the binary version may not match the package.json version (e.g. forks).
+  if (isValidBinaryPath(ESBUILD_BINARY_PATH) && fs.existsSync(ESBUILD_BINARY_PATH)) {
+    return
+  }
   if (isToPathJS) {
     // We need "node" before this command since it's a JavaScript file
     validateBinaryVersion(process.execPath, toPath)
