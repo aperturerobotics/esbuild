@@ -1,3 +1,3 @@
 package main
 
-const esbuildVersion = "aperture-14"
+const esbuildVersion = "aperture-15"
