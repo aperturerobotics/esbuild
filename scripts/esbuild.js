@@ -326,7 +326,8 @@ exports.installForTests = () => {
   fs.mkdirSync(installDir)
   fs.writeFileSync(path.join(installDir, 'package.json'), '{}')
   childProcess.execSync(`npm pack --silent "${npmDir}"`, { cwd: installDir, stdio: 'inherit' })
-  childProcess.execSync(`npm install --silent --no-audit --no-optional --ignore-scripts=false --progress=false esbuild-${version}.tgz`, { cwd: installDir, env, stdio: 'inherit' })
+  const tgz = fs.readdirSync(installDir).find(f => f.startsWith('esbuild-') && f.endsWith('.tgz'))
+  childProcess.execSync(`npm install --silent --no-audit --no-optional --ignore-scripts=false --progress=false ${tgz}`, { cwd: installDir, env, stdio: 'inherit' })
 
   // Evaluate the code
   const ESBUILD_PACKAGE_PATH = path.join(installDir, 'node_modules', 'esbuild')
