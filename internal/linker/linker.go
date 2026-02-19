@@ -20,26 +20,26 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/evanw/esbuild/internal/ast"
-	"github.com/evanw/esbuild/internal/bundler"
-	"github.com/evanw/esbuild/internal/compat"
-	"github.com/evanw/esbuild/internal/config"
-	"github.com/evanw/esbuild/internal/css_ast"
-	"github.com/evanw/esbuild/internal/css_lexer"
-	"github.com/evanw/esbuild/internal/css_parser"
-	"github.com/evanw/esbuild/internal/css_printer"
-	"github.com/evanw/esbuild/internal/fs"
-	"github.com/evanw/esbuild/internal/graph"
-	"github.com/evanw/esbuild/internal/helpers"
-	"github.com/evanw/esbuild/internal/js_ast"
-	"github.com/evanw/esbuild/internal/js_lexer"
-	"github.com/evanw/esbuild/internal/js_printer"
-	"github.com/evanw/esbuild/internal/logger"
-	"github.com/evanw/esbuild/internal/renamer"
-	"github.com/evanw/esbuild/internal/resolver"
-	"github.com/evanw/esbuild/internal/runtime"
-	"github.com/evanw/esbuild/internal/sourcemap"
-	"github.com/evanw/esbuild/internal/xxhash"
+	"github.com/aperturerobotics/esbuild/internal/ast"
+	"github.com/aperturerobotics/esbuild/internal/bundler"
+	"github.com/aperturerobotics/esbuild/internal/compat"
+	"github.com/aperturerobotics/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/css_ast"
+	"github.com/aperturerobotics/esbuild/internal/css_lexer"
+	"github.com/aperturerobotics/esbuild/internal/css_parser"
+	"github.com/aperturerobotics/esbuild/internal/css_printer"
+	"github.com/aperturerobotics/esbuild/internal/fs"
+	"github.com/aperturerobotics/esbuild/internal/graph"
+	"github.com/aperturerobotics/esbuild/internal/helpers"
+	"github.com/aperturerobotics/esbuild/internal/js_ast"
+	"github.com/aperturerobotics/esbuild/internal/js_lexer"
+	"github.com/aperturerobotics/esbuild/internal/js_printer"
+	"github.com/aperturerobotics/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/renamer"
+	"github.com/aperturerobotics/esbuild/internal/resolver"
+	"github.com/aperturerobotics/esbuild/internal/runtime"
+	"github.com/aperturerobotics/esbuild/internal/sourcemap"
+	"github.com/aperturerobotics/esbuild/internal/xxhash"
 )
 
 type linkerContext struct {
@@ -1956,7 +1956,7 @@ func (c *linkerContext) scanImportsAndExports() {
 						// importing code should not see "__esModule" while the requiring
 						// code should see "__esModule". This is an extremely complex
 						// and subtle set of bundler interop issues. See for example
-						// https://github.com/evanw/esbuild/issues/1591.
+						// https://github.com/aperturerobotics/esbuild/issues/1591.
 						if record.Kind == ast.ImportRequire {
 							record.Flags |= ast.WrapWithToCJS
 							toCommonJSUses++
@@ -5329,7 +5329,7 @@ func (c *linkerContext) renameSymbolsInChunk(chunk *chunkInfo, filesInOrder []ui
 	// using these names in this case even if there is not a risk of a name
 	// collision because there is still a risk of node incorrectly detecting
 	// something in a nested scope as an top-level export. Here's a case where
-	// this happened: https://github.com/evanw/esbuild/issues/3544
+	// this happened: https://github.com/aperturerobotics/esbuild/issues/3544
 	if c.options.OutputFormat == config.FormatCommonJS && c.options.Platform == config.PlatformNode {
 		reservedNames["exports"] = 1
 		reservedNames["module"] = 1
@@ -7044,7 +7044,7 @@ func (c *linkerContext) generateSourceMapForChunk(
 				// are intended for code instead of humans, and we don't want the
 				// changes for humans to unintentionally break code that uses them.
 				//
-				// See https://github.com/evanw/esbuild/issues/4078 for more info.
+				// See https://github.com/aperturerobotics/esbuild/issues/4078 for more info.
 				if ns := file.InputFile.Source.KeyPath.Namespace; ns != "" {
 					source = fmt.Sprintf("%s:%s", ns, source)
 				}

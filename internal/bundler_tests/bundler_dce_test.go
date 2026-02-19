@@ -4,8 +4,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/evanw/esbuild/internal/compat"
-	"github.com/evanw/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/compat"
+	"github.com/aperturerobotics/esbuild/internal/config"
 )
 
 var dce_suite = suite{
@@ -4931,7 +4931,7 @@ func TestDCEOfNegatedBigints(t *testing.T) {
 	})
 }
 
-// https://github.com/evanw/esbuild/issues/4310
+// https://github.com/aperturerobotics/esbuild/issues/4310
 func TestDCEOfIteratorSuperclassIssue4310(t *testing.T) {
 	dce_suite.expectBundled(t, bundled{
 		files: map[string]string{

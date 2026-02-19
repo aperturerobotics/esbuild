@@ -581,7 +581,7 @@ export function createChannel(streamIn: StreamIn): StreamOut {
           // Ignore invalid commands for old builds that no longer exist.
           // This can happen when "context.cancel" and "context.dispose"
           // is called while esbuild is processing many files in parallel.
-          // See https://github.com/evanw/esbuild/issues/3318 for details.
+          // See https://github.com/aperturerobotics/esbuild/issues/3318 for details.
           return
         }
         const callback = requestCallbacks[request.command]
@@ -1724,7 +1724,7 @@ function sanitizeLocation(location: types.PartialMessage['location'], where: str
   // when this function is slow. The slowness comes from serializing a huge
   // string. But the vast majority of that string is unnecessary. Try to
   // detect when this is the case and trim the string before serialization
-  // to avoid the performance hit. See: https://github.com/evanw/esbuild/issues/3467
+  // to avoid the performance hit. See: https://github.com/aperturerobotics/esbuild/issues/3467
   if (lineText) {
     // Try to conservatively guess the maximum amount of relevant text
     const relevantASCII = lineText.slice(0,

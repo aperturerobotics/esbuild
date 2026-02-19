@@ -17,11 +17,11 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/evanw/esbuild/internal/ast"
-	"github.com/evanw/esbuild/internal/helpers"
-	"github.com/evanw/esbuild/internal/js_ast"
-	"github.com/evanw/esbuild/internal/logger"
-	"github.com/evanw/esbuild/internal/runtime"
+	"github.com/aperturerobotics/esbuild/internal/ast"
+	"github.com/aperturerobotics/esbuild/internal/helpers"
+	"github.com/aperturerobotics/esbuild/internal/js_ast"
+	"github.com/aperturerobotics/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/runtime"
 )
 
 type entryPointKind uint8

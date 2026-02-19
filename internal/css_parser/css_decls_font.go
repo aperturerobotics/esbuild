@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/evanw/esbuild/internal/css_ast"
-	"github.com/evanw/esbuild/internal/css_lexer"
+	"github.com/aperturerobotics/esbuild/internal/css_ast"
+	"github.com/aperturerobotics/esbuild/internal/css_lexer"
 )
 
 // Specification: https://drafts.csswg.org/css-fonts/#font-prop

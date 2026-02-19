@@ -3,9 +3,9 @@ package bundler_tests
 import (
 	"testing"
 
-	"github.com/evanw/esbuild/internal/bundler"
-	"github.com/evanw/esbuild/internal/compat"
-	"github.com/evanw/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/bundler"
+	"github.com/aperturerobotics/esbuild/internal/compat"
+	"github.com/aperturerobotics/esbuild/internal/config"
 )
 
 var loader_suite = suite{
@@ -1820,7 +1820,7 @@ func TestLoaderTextUTF8BOM(t *testing.T) {
 	})
 }
 
-// See: https://github.com/evanw/esbuild/issues/4075
+// See: https://github.com/aperturerobotics/esbuild/issues/4075
 func TestLoaderInlineSourceMapAbsolutePathIssue4075Unix(t *testing.T) {
 	urlEncodedUnix := "%22file%3A%2F%2F%2Fout%2Fsrc%2Fstyles1.scss%22" // file:///out/src/styles1.scss
 	pathEncodedUnix := "%22%2Fout%2Fsrc%2Fstyles2.scss%22"             // /out/src/styles2.scss
@@ -1863,7 +1863,7 @@ func TestLoaderInlineSourceMapAbsolutePathIssue4075Unix(t *testing.T) {
 	})
 }
 
-// See: https://github.com/evanw/esbuild/issues/4075
+// See: https://github.com/aperturerobotics/esbuild/issues/4075
 func TestLoaderInlineSourceMapAbsolutePathIssue4075Windows(t *testing.T) {
 	urlEncodedWin := "%22file%3A%2F%2F%2FC%3A%2Fout%2Fsrc%2Fstyles1.scss%22" // file:///C:/out/src/styles1.scss
 	pathEncodedWin := "%22C%3A%5C%5Cout%5C%5Csrc%5C%5Cstyles2.scss%22"       // C:\out\src\styles2.scss
@@ -1906,7 +1906,7 @@ func TestLoaderInlineSourceMapAbsolutePathIssue4075Windows(t *testing.T) {
 	})
 }
 
-// See: https://github.com/evanw/esbuild/issues/4370
+// See: https://github.com/aperturerobotics/esbuild/issues/4370
 func TestLoaderDataURLHashSuffixIssue4370(t *testing.T) {
 	loader_suite.expectBundled(t, bundled{
 		files: map[string]string{

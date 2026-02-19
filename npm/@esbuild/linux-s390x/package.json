@@ -4,7 +4,7 @@
   "description": "The Linux IBM Z 64-bit Big Endian binary for esbuild, a JavaScript bundler.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/evanw/esbuild.git"
+    "url": "git+https://github.com/aperturerobotics/esbuild.git"
   },
   "license": "MIT",
   "preferUnplugged": true,

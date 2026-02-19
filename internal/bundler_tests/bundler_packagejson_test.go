@@ -3,7 +3,7 @@ package bundler_tests
 import (
 	"testing"
 
-	"github.com/evanw/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/config"
 )
 
 var packagejson_suite = suite{
@@ -805,7 +805,7 @@ func TestPackageJsonBrowserIndexNoExt(t *testing.T) {
 	})
 }
 
-// See https://github.com/evanw/esbuild/issues/2002
+// See https://github.com/aperturerobotics/esbuild/issues/2002
 func TestPackageJsonBrowserIssue2002A(t *testing.T) {
 	packagejson_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -848,7 +848,7 @@ func TestPackageJsonBrowserIssue2002B(t *testing.T) {
 	})
 }
 
-// See https://github.com/evanw/esbuild/issues/2239
+// See https://github.com/aperturerobotics/esbuild/issues/2239
 func TestPackageJsonBrowserIssue2002C(t *testing.T) {
 	packagejson_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -2886,7 +2886,7 @@ func TestPackageJsonNodePathsIssue2752(t *testing.T) {
 	})
 }
 
-// See: https://github.com/evanw/esbuild/issues/3377
+// See: https://github.com/aperturerobotics/esbuild/issues/3377
 func TestPackageJsonReversePackageExportsIssue3377(t *testing.T) {
 	packagejson_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -2924,7 +2924,7 @@ NOTE: You can mark the path "msw/browser" as external to exclude it from the bun
 	})
 }
 
-// See: https://github.com/evanw/esbuild/issues/3367
+// See: https://github.com/aperturerobotics/esbuild/issues/3367
 func TestPackageJsonDisabledTypeModuleIssue3367(t *testing.T) {
 	packagejson_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -2956,7 +2956,7 @@ func TestPackageJsonDisabledTypeModuleIssue3367(t *testing.T) {
 	})
 }
 
-// See: https://github.com/evanw/esbuild/issues/3485
+// See: https://github.com/aperturerobotics/esbuild/issues/3485
 func TestPackageJsonSubpathImportNodeBuiltinIssue3485(t *testing.T) {
 	packagejson_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -2991,7 +2991,7 @@ func TestPackageJsonSubpathImportNodeBuiltinIssue3485(t *testing.T) {
 	})
 }
 
-// See: https://github.com/evanw/esbuild/issues/3867
+// See: https://github.com/aperturerobotics/esbuild/issues/3867
 func TestPackageJsonBadExportsImportAndRequireWarningIssue3867(t *testing.T) {
 	packagejson_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -3039,7 +3039,7 @@ node_modules/foo/package.json: NOTE: The "require" condition comes earlier and w
 	})
 }
 
-// See: https://github.com/evanw/esbuild/issues/3867
+// See: https://github.com/aperturerobotics/esbuild/issues/3867
 func TestPackageJsonBadExportsDefaultWarningIssue3867(t *testing.T) {
 	packagejson_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -3085,7 +3085,7 @@ node_modules/foo/package.json: NOTE: The "default" condition comes earlier and w
 	})
 }
 
-// See: https://github.com/evanw/esbuild/issues/3887
+// See: https://github.com/aperturerobotics/esbuild/issues/3887
 func TestPackageJsonExportsDefaultWarningIssue3887(t *testing.T) {
 	packagejson_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -3118,7 +3118,7 @@ func TestPackageJsonExportsDefaultWarningIssue3887(t *testing.T) {
 	})
 }
 
-// https://github.com/evanw/esbuild/issues/4144
+// https://github.com/aperturerobotics/esbuild/issues/4144
 func TestConfusingNameCollisionsIssue4144(t *testing.T) {
 	packagejson_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -3152,7 +3152,7 @@ func TestConfusingNameCollisionsIssue4144(t *testing.T) {
 	})
 }
 
-// https://github.com/evanw/esbuild/issues/4187
+// https://github.com/aperturerobotics/esbuild/issues/4187
 func TestPackageJsonBrowserMatchingTrailingSlashIssue4187(t *testing.T) {
 	packagejson_suite.expectBundled(t, bundled{
 		files: map[string]string{

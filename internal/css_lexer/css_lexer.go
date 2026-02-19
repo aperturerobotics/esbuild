@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/evanw/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/logger"
 )
 
 // The lexer converts a source file to a stream of tokens. Unlike esbuild's

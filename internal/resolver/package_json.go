@@ -8,12 +8,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/evanw/esbuild/internal/config"
-	"github.com/evanw/esbuild/internal/helpers"
-	"github.com/evanw/esbuild/internal/js_ast"
-	"github.com/evanw/esbuild/internal/js_lexer"
-	"github.com/evanw/esbuild/internal/js_parser"
-	"github.com/evanw/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/helpers"
+	"github.com/aperturerobotics/esbuild/internal/js_ast"
+	"github.com/aperturerobotics/esbuild/internal/js_lexer"
+	"github.com/aperturerobotics/esbuild/internal/js_parser"
+	"github.com/aperturerobotics/esbuild/internal/logger"
 )
 
 type packageJSON struct {
@@ -1258,7 +1258,7 @@ func (r resolverQuery) esmPackageTargetResolve(
 				//   7 |   "exports": {
 				//     |              ^
 				//
-				// More information: https://github.com/evanw/esbuild/issues/1484
+				// More information: https://github.com/aperturerobotics/esbuild/issues/1484
 				target = lastMapEntry.value
 			}
 			keys := make([]logger.Span, len(target.mapData))

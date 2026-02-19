@@ -3,8 +3,8 @@ package js_ast
 import (
 	"strconv"
 
-	"github.com/evanw/esbuild/internal/ast"
-	"github.com/evanw/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/ast"
+	"github.com/aperturerobotics/esbuild/internal/logger"
 )
 
 // Every module (i.e. file) is parsed into a separate AST data structure. For
@@ -809,7 +809,7 @@ type EJSXElement struct {
 // verbatim. One reason why this matters is because there is no canonical way
 // to interpret JSX text (Babel and TypeScript differ in what newlines mean).
 // Another reason is that some people want to do custom things such as this:
-// https://github.com/evanw/esbuild/issues/3605
+// https://github.com/aperturerobotics/esbuild/issues/3605
 type EJSXText struct {
 	Raw string
 }

@@ -63,7 +63,7 @@ export const generateTableForCSS = (map: VersionRangeMap<CSSFeature>, prefixes: 
 package compat
 
 import (
-\t"github.com/evanw/esbuild/internal/css_ast"
+\t"github.com/aperturerobotics/esbuild/internal/css_ast"
 )
 
 type CSSFeature uint16

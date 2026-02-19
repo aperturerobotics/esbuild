@@ -3,14 +3,14 @@ package bundler_tests
 import (
 	"testing"
 
-	"github.com/evanw/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/config"
 )
 
 var yarnpnp_suite = suite{
 	name: "yarnpnp",
 }
 
-// https://github.com/evanw/esbuild/issues/3698
+// https://github.com/aperturerobotics/esbuild/issues/3698
 func TestTsconfigPackageJsonExportsYarnPnP(t *testing.T) {
 	yarnpnp_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -83,7 +83,7 @@ func TestTsconfigPackageJsonExportsYarnPnP(t *testing.T) {
 	})
 }
 
-// https://github.com/evanw/esbuild/issues/3915
+// https://github.com/aperturerobotics/esbuild/issues/3915
 func TestTsconfigStackOverflowYarnPnP(t *testing.T) {
 	yarnpnp_suite.expectBundled(t, bundled{
 		files: map[string]string{

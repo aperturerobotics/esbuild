@@ -1,9 +1,8 @@
-module github.com/evanw/esbuild
+// FORK
+module github.com/aperturerobotics/esbuild
 
-// The upstream version supports Go 1.13.
-//
-// Given that that version is no longer updated by the Go developers, and that
-// it's full of security vulnerabilities, we chose to support go 1.20 instead.
-go 1.20
+// module github.com/aperturerobotics/esbuild
 
-require golang.org/x/sys v0.29.0
+go 1.25
+
+require golang.org/x/sys v0.41.0

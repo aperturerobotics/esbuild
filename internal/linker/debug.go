@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/evanw/esbuild/internal/ast"
-	"github.com/evanw/esbuild/internal/graph"
-	"github.com/evanw/esbuild/internal/helpers"
-	"github.com/evanw/esbuild/internal/js_ast"
+	"github.com/aperturerobotics/esbuild/internal/ast"
+	"github.com/aperturerobotics/esbuild/internal/graph"
+	"github.com/aperturerobotics/esbuild/internal/helpers"
+	"github.com/aperturerobotics/esbuild/internal/js_ast"
 )
 
 // Set this to true and then load the resulting metafile in "graph-debugger.html"

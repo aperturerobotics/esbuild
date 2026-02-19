@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/evanw/esbuild/internal/api_helpers"
-	"github.com/evanw/esbuild/internal/logger"
-	"github.com/evanw/esbuild/pkg/cli"
+	"github.com/aperturerobotics/esbuild/internal/api_helpers"
+	"github.com/aperturerobotics/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/pkg/cli"
 )
 
 var helpText = func(colors logger.Colors) string {
@@ -28,7 +28,7 @@ var helpText = func(colors logger.Colors) string {
   ` + colors.Underline + `https://esbuild.github.io/` + colors.Reset + `
 
 ` + colors.Bold + `Repository:` + colors.Reset + `
-  ` + colors.Underline + `https://github.com/evanw/esbuild` + colors.Reset + `
+  ` + colors.Underline + `https://github.com/aperturerobotics/esbuild` + colors.Reset + `
 
 ` + colors.Bold + `Simple options:` + colors.Reset + `
   --bundle              Bundle all dependencies into the output files

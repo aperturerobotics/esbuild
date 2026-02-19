@@ -3,7 +3,7 @@ package bundler_tests
 import (
 	"testing"
 
-	"github.com/evanw/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/config"
 )
 
 var importstar_suite = suite{
@@ -1810,7 +1810,7 @@ entry-nope.js: WARNING: Import "nope" will always be undefined because the file 
 	})
 }
 
-// Failure case due to a bug in https://github.com/evanw/esbuild/pull/2059
+// Failure case due to a bug in https://github.com/aperturerobotics/esbuild/pull/2059
 func TestReExportStarEntryPointAndInnerFile(t *testing.T) {
 	importstar_suite.expectBundled(t, bundled{
 		files: map[string]string{

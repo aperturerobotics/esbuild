@@ -14,10 +14,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/evanw/esbuild/internal/cli_helpers"
-	"github.com/evanw/esbuild/internal/fs"
-	"github.com/evanw/esbuild/internal/logger"
-	"github.com/evanw/esbuild/pkg/api"
+	"github.com/aperturerobotics/esbuild/internal/cli_helpers"
+	"github.com/aperturerobotics/esbuild/internal/fs"
+	"github.com/aperturerobotics/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/pkg/api"
 )
 
 func newBuildOptions() api.BuildOptions {

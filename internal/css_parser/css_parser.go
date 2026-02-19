@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/evanw/esbuild/internal/ast"
-	"github.com/evanw/esbuild/internal/compat"
-	"github.com/evanw/esbuild/internal/config"
-	"github.com/evanw/esbuild/internal/css_ast"
-	"github.com/evanw/esbuild/internal/css_lexer"
-	"github.com/evanw/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/ast"
+	"github.com/aperturerobotics/esbuild/internal/compat"
+	"github.com/aperturerobotics/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/css_ast"
+	"github.com/aperturerobotics/esbuild/internal/css_lexer"
+	"github.com/aperturerobotics/esbuild/internal/logger"
 )
 
 // This is mostly a normal CSS parser with one exception: the addition of

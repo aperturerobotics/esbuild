@@ -223,7 +223,7 @@ const spawnNew: SpawnFn = (cmd, { args, stdin, stdout, stderr }) => {
       // thread in the child process is hung or busy, but that may be the best
       // we can do.
       //
-      // See this for more info: https://github.com/evanw/esbuild/pull/3611
+      // See this for more info: https://github.com/aperturerobotics/esbuild/pull/3611
       if (writer) await writer.close()
       if (reader) await reader.cancel()
 

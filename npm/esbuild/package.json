@@ -4,7 +4,7 @@
   "description": "An extremely fast JavaScript and CSS bundler and minifier.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/evanw/esbuild.git"
+    "url": "git+https://github.com/aperturerobotics/esbuild.git"
   },
   "scripts": {
     "postinstall": "node install.js"

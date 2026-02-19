@@ -3,8 +3,8 @@ package cache
 import (
 	"sync"
 
-	"github.com/evanw/esbuild/internal/logger"
-	"github.com/evanw/esbuild/internal/runtime"
+	"github.com/aperturerobotics/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/runtime"
 )
 
 // This is a cache of the parsed contents of a set of files. The idea is to be

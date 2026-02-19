@@ -4,9 +4,9 @@ import (
 	"math"
 	"sync"
 
-	"github.com/evanw/esbuild/internal/ast"
-	"github.com/evanw/esbuild/internal/helpers"
-	"github.com/evanw/esbuild/internal/js_ast"
+	"github.com/aperturerobotics/esbuild/internal/ast"
+	"github.com/aperturerobotics/esbuild/internal/helpers"
+	"github.com/aperturerobotics/esbuild/internal/js_ast"
 )
 
 var processedGlobalsMutex sync.Mutex

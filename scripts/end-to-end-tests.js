@@ -161,7 +161,7 @@ tests.push(
     `,
   }),
 
-  // https://github.com/evanw/esbuild/issues/3205
+  // https://github.com/aperturerobotics/esbuild/issues/3205
   test(['entry.ts', '--outfile=node.js'], {
     'entry.ts': `
       // Note: The parentheses are important here
@@ -173,7 +173,7 @@ tests.push(
     `,
   }),
 
-  // https://github.com/evanw/esbuild/issues/3210
+  // https://github.com/aperturerobotics/esbuild/issues/3210
   test(['entry.ts', '--bundle', '--outfile=node.js'], {
     'entry.ts': `
       import { MyEnum } from './enums';
@@ -198,7 +198,7 @@ tests.push(
 
 // Check "tsconfig.json" behavior
 tests.push(
-  // See: https://github.com/evanw/esbuild/issues/2481
+  // See: https://github.com/aperturerobotics/esbuild/issues/2481
   test(['main.ts', '--bundle', '--outfile=node.js'], {
     'main.ts': `
       import { foo } from 'js-pkg'
@@ -234,7 +234,7 @@ tests.push(
     `,
   }),
 
-  // See: https://github.com/evanw/esbuild/issues/3767
+  // See: https://github.com/aperturerobotics/esbuild/issues/3767
   test(['apps/client/src/index.ts', '--bundle', '--outfile=node.js'], {
     'apps/client/src/index.ts': `
       import { foo } from '~/foo'
@@ -513,7 +513,7 @@ if (process.platform !== 'win32') {
       'src/node_modules/foo/index.js': { symlink: `TEST_DIR_ABS_PATH/registry/node_modules/foo/index.js` },
     }),
 
-    // This is a test for https://github.com/evanw/esbuild/issues/222
+    // This is a test for https://github.com/aperturerobotics/esbuild/issues/222
     test(['--bundle', 'src/in.js', '--outfile=out/node.js', '--metafile=out/meta.json', '--platform=node', '--format=cjs'], {
       'a/b/src/in.js': `
         import {metafile} from './load'
@@ -536,7 +536,7 @@ if (process.platform !== 'win32') {
       'c': { symlink: `a/b` },
     }, { cwd: 'c' }),
 
-    // This is a test for https://github.com/evanw/esbuild/issues/766
+    // This is a test for https://github.com/aperturerobotics/esbuild/issues/766
     test(['--bundle', 'impl/index.mjs', '--outfile=node.js', '--format=cjs', '--resolve-extensions=.mjs'], {
       'config/yarn/link/@monorepo-source/a': { symlink: `../../../../monorepo-source/packages/a` },
       'config/yarn/link/@monorepo-source/b': { symlink: `../../../../monorepo-source/packages/b` },
@@ -555,7 +555,7 @@ if (process.platform !== 'win32') {
       `,
     }),
 
-    // These tests are for https://github.com/evanw/esbuild/issues/2773
+    // These tests are for https://github.com/aperturerobotics/esbuild/issues/2773
     test(['--bundle', 'in.js', '--outfile=node.js'], {
       'in.js': `import {foo} from './baz/bar/foo'; if (foo !== 444) throw 'fail'`,
       'foo/index.js': `import {qux} from '../qux'; export const foo = 123 + qux`,
@@ -1065,7 +1065,7 @@ for (const flags of [[], ['--target=es6', '--target=es2017', '--supported:for-aw
 }
 
 // Check object rest lowering
-// https://github.com/evanw/esbuild/issues/956
+// https://github.com/aperturerobotics/esbuild/issues/956
 tests.push(
   test(['in.js', '--outfile=node.js', '--target=es6'], {
     'in.js': `
@@ -1076,7 +1076,7 @@ tests.push(
 )
 
 // Check object spread lowering
-// https://github.com/evanw/esbuild/issues/1017
+// https://github.com/aperturerobotics/esbuild/issues/1017
 const objectAssignSemantics = `
   var a, b, c, p, s = Symbol('s')
 
@@ -1419,7 +1419,7 @@ let simpleCyclicImportTestCase542 = {
 
 // Test internal import order
 tests.push(
-  // See https://github.com/evanw/esbuild/issues/421
+  // See https://github.com/aperturerobotics/esbuild/issues/421
   test(['--bundle', 'in.js', '--outfile=node.js'], {
     'in.js': `
       import {foo} from './cjs'
@@ -1439,7 +1439,7 @@ tests.push(
     'esm.js': `export let bar = global.internal_import_order_test2`,
   }),
 
-  // See https://github.com/evanw/esbuild/issues/542
+  // See https://github.com/aperturerobotics/esbuild/issues/542
   test(['--bundle', 'in.js', '--outfile=node.js'], simpleCyclicImportTestCase542),
   test(['--bundle', 'in.js', '--outfile=node.js', '--format=iife'], simpleCyclicImportTestCase542),
   test(['--bundle', 'in.js', '--outfile=node.js', '--format=iife', '--global-name=someName'], simpleCyclicImportTestCase542),
@@ -1731,7 +1731,7 @@ tests.push(
     `,
   }),
 
-  // Complex circular bundled and non-bundled import case (https://github.com/evanw/esbuild/issues/758)
+  // Complex circular bundled and non-bundled import case (https://github.com/aperturerobotics/esbuild/issues/758)
   test(['node.ts', '--bundle', '--format=cjs', '--outdir=.'], {
     'node.ts': `
       import {a} from './re-export'
@@ -1793,7 +1793,7 @@ tests.push(
     `,
   }),
 
-  // Failure case due to a bug in https://github.com/evanw/esbuild/pull/2059
+  // Failure case due to a bug in https://github.com/aperturerobotics/esbuild/pull/2059
   test(['in.ts', '--bundle', '--format=cjs', '--outfile=out.js', '--external:*.cjs'], {
     'in.ts': `
       export * from './a.cjs'
@@ -1907,7 +1907,7 @@ for (const minify of [[], ['--minify']]) {
         'foo.js': `module.exports = function() { return this }`,
       }),
 
-      // https://github.com/evanw/esbuild/issues/4348
+      // https://github.com/aperturerobotics/esbuild/issues/4348
       test(['--bundle', '--format=cjs', 'in.js', '--outfile=node.js', '--target=' + target].concat(minify), {
         'in.js': `
           var foo = Object.entries({ ...require('./foo') }).join('|')
@@ -1954,7 +1954,7 @@ for (const minify of [[], ['--minify']]) {
       'foo.js': `export let foo = {bar: 123}`,
     }),
 
-    // https://github.com/evanw/esbuild/issues/2793
+    // https://github.com/aperturerobotics/esbuild/issues/2793
     test(['--bundle', 'src/index.js', '--outfile=node.js', '--format=esm'].concat(minify), {
       'src/a.js': `
         export const A = 42;
@@ -2155,7 +2155,7 @@ tests.push(
   }),
 
   // Make sure "import {} from; export {}" behaves like "export {} from"
-  // https://github.com/evanw/esbuild/issues/1890
+  // https://github.com/aperturerobotics/esbuild/issues/1890
   test(['node.ts', 'foo.ts', '--outdir=.', '--format=cjs'], {
     'node.ts': `import * as foo from './foo.js'; if (foo.bar !== 123) throw 'fail'`,
     'foo.ts': `import bar from './lib.js'; export { bar }`,
@@ -2265,7 +2265,7 @@ tests.push(
         // thinks this file has an export called "notAnExport".
         // We must make sure that it doesn't have that name
         // when targeting Node with CommonJS. See also:
-        // https://github.com/evanw/esbuild/issues/3544
+        // https://github.com/aperturerobotics/esbuild/issues/3544
         exports.notAnExport = function() {
         };
       }
@@ -2659,7 +2659,7 @@ tests.push(
     `,
   }, { async: true }),
 
-  // https://github.com/evanw/esbuild/issues/3029
+  // https://github.com/aperturerobotics/esbuild/issues/3029
   test([
     'node_modules/util-ex/src/index.js',
     'node_modules/util-ex/src/fn1.js',
@@ -2908,7 +2908,7 @@ tests.push(
 )
 
 // This shouldn't cause a syntax error
-// https://github.com/evanw/esbuild/issues/1082
+// https://github.com/aperturerobotics/esbuild/issues/1082
 tests.push(
   test(['in.js', '--outfile=node.js', '--minify', '--bundle'], {
     'in.js': `
@@ -2918,7 +2918,7 @@ tests.push(
 )
 
 // Check for file names of wrapped modules in non-minified stack traces (for profiling)
-// Context: https://github.com/evanw/esbuild/pull/1236
+// Context: https://github.com/aperturerobotics/esbuild/pull/1236
 tests.push(
   test(['entry.js', '--outfile=node.js', '--bundle'], {
     'entry.js': `
@@ -2971,7 +2971,7 @@ tests.push(
 )
 
 // This shouldn't crash
-// https://github.com/evanw/esbuild/issues/1080
+// https://github.com/aperturerobotics/esbuild/issues/1080
 tests.push(
   // Various CommonJS cases
   test(['in.js', '--outfile=node.js', '--define:foo={"x":0}', '--bundle'], {
@@ -3056,7 +3056,7 @@ tests.push(
 )
 
 // Check for "sideEffects: false" wrapper handling
-// https://github.com/evanw/esbuild/issues/1088
+// https://github.com/aperturerobotics/esbuild/issues/1088
 for (const pkgJSON of [`{}`, `{"sideEffects": false}`]) {
   for (const entry of [
     `export let async = async () => { if (require("pkg").foo() !== 123) throw 'fail' }`,
@@ -3207,7 +3207,7 @@ tests.push(
     `,
   }),
 
-  // https://github.com/evanw/esbuild/issues/1812
+  // https://github.com/aperturerobotics/esbuild/issues/1812
   test(['in.js', '--outfile=node.js'], {
     'in.js': `
       let a = 1;
@@ -3242,7 +3242,7 @@ tests.push(
     `,
   }),
 
-  // https://github.com/evanw/esbuild/issues/4351
+  // https://github.com/aperturerobotics/esbuild/issues/4351
   test(['in.js', '--outfile=node.js', '--minify'], {
     'in.js': `
     function f(x) {
@@ -3555,7 +3555,7 @@ for (const minify of [[], ['--minify-syntax']]) {
       `,
     }),
 
-    // See: https://github.com/evanw/esbuild/issues/3195
+    // See: https://github.com/aperturerobotics/esbuild/issues/3195
     test(['in.js', '--outfile=node.js', '--keep-names'].concat(minify), {
       'in.js': `
         const log = [];
@@ -3829,7 +3829,7 @@ for (const minify of [[], ['--minify-syntax']]) {
     }),
   );
 
-  // https://github.com/evanw/esbuild/issues/3125
+  // https://github.com/aperturerobotics/esbuild/issues/3125
   tests.push(
     test(['in.js', '--outfile=node.js'].concat(minify), {
       'in.js': `
@@ -3845,7 +3845,7 @@ for (const minify of [[], ['--minify-syntax']]) {
     }),
   )
 
-  // https://github.com/evanw/esbuild/issues/3700
+  // https://github.com/aperturerobotics/esbuild/issues/3700
   tests.push(
     test(['in.js', '--bundle', '--outfile=node.js'].concat(minify), {
       'in.js': `
@@ -4075,7 +4075,7 @@ for (let flags of [[], ['--minify', '--keep-names']]) {
       'in.js': `(() => { let Foo = class { static foo() {} }; if (Foo.foo.name !== 'foo') throw 'fail: ' + Foo.foo.name })()`,
     }),
 
-    // See: https://github.com/evanw/esbuild/issues/3199
+    // See: https://github.com/aperturerobotics/esbuild/issues/3199
     test(['in.ts', '--outfile=node.js', '--target=es6'].concat(flags), {
       'in.ts': `
         namespace foo { export class Foo {} }
@@ -4089,7 +4089,7 @@ for (let flags of [[], ['--minify', '--keep-names']]) {
       `,
     }),
 
-    // See: https://github.com/evanw/esbuild/issues/3756
+    // See: https://github.com/aperturerobotics/esbuild/issues/3756
     test(['in.js', '--outfile=node.js', '--bundle'].concat(flags), {
       'in.js': `(() => { let obj = { fn() {} }; if (obj.fn.name !== 'fn') throw 'fail: ' + obj.fn.name })()`,
     }),
@@ -4256,7 +4256,7 @@ tests.push(
     'in.js': `class Foo { static #foo = class { #bar = 123; bar = this.#bar }; static foo = this.#foo } if (Foo.foo.name !== '#foo') throw 'fail: ' + Foo.foo.name`,
   }),
 
-  // https://github.com/evanw/esbuild/issues/2149
+  // https://github.com/aperturerobotics/esbuild/issues/2149
   test(['in.js', '--outfile=node.js', '--target=es6', '--keep-names'], {
     'in.js': `
       class Foo {
@@ -4320,7 +4320,7 @@ tests.push(
 )
 
 // Check for an obscure bug with minification, symbol renaming, and sloppy
-// nested function declarations: https://github.com/evanw/esbuild/issues/2809.
+// nested function declarations: https://github.com/aperturerobotics/esbuild/issues/2809.
 // Previously esbuild generated the following code:
 //
 //   let f = 0;
@@ -4353,7 +4353,7 @@ for (const flags of [[], ['--minify']]) {
 // Test hoisting variables inside for loop initializers outside of lazy ESM
 // wrappers. Previously this didn't work due to a bug that considered for
 // loop initializers to already be in the top-level scope. For more info
-// see: https://github.com/evanw/esbuild/issues/1455.
+// see: https://github.com/aperturerobotics/esbuild/issues/1455.
 tests.push(
   test(['in.js', '--outfile=node.js', '--bundle'], {
     'in.js': `
@@ -4466,7 +4466,7 @@ tests.push(
     'foo.js': `module.exports = {get foo() { module.exports.bar = 1 }, bar: 0}`,
   }),
 
-  // Test for an implicit and explicit "**/" prefix (see https://github.com/evanw/esbuild/issues/1184)
+  // Test for an implicit and explicit "**/" prefix (see https://github.com/aperturerobotics/esbuild/issues/1184)
   test(['--bundle', 'entry.js', '--outfile=node.js'], {
     'entry.js': `import './foo'; if (global.dce6 !== 123) throw 'fail'`,
     'foo/dir/x.js': `global.dce6 = 123`,
@@ -5182,7 +5182,7 @@ for (let flags of [['--target=es2022'], ['--target=es6'], ['--bundle', '--target
 `,
     }),
 
-    // Issue: https://github.com/evanw/esbuild/issues/901
+    // Issue: https://github.com/aperturerobotics/esbuild/issues/901
     test(['in.js', '--outfile=node.js'].concat(flags), {
       'in.js': `
         class A {
@@ -5206,7 +5206,7 @@ for (let flags of [['--target=es2022'], ['--target=es6'], ['--bundle', '--target
       `,
     }),
 
-    // Issue: https://github.com/evanw/esbuild/issues/1066
+    // Issue: https://github.com/aperturerobotics/esbuild/issues/1066
     test(['in.js', '--outfile=node.js'].concat(flags), {
       'in.js': `
         class Test {
@@ -5686,7 +5686,7 @@ for (let flags of [['--target=es2022'], ['--target=es6'], ['--bundle', '--target
       }`,
     }),
 
-    // https://github.com/evanw/esbuild/issues/2800
+    // https://github.com/aperturerobotics/esbuild/issues/2800
     test(['in.js', '--outfile=node.js'].concat(flags), {
       'in.js': `
         class Baz {
@@ -5699,7 +5699,7 @@ for (let flags of [['--target=es2022'], ['--target=es6'], ['--bundle', '--target
       `,
     }),
 
-    // https://github.com/evanw/esbuild/issues/2950
+    // https://github.com/aperturerobotics/esbuild/issues/2950
     test(['in.js', '--outfile=node.js'].concat(flags), {
       'in.js': `
         class SomeClass {
@@ -5710,7 +5710,7 @@ for (let flags of [['--target=es2022'], ['--target=es6'], ['--bundle', '--target
       `,
     }),
 
-    // https://github.com/evanw/esbuild/issues/3025
+    // https://github.com/aperturerobotics/esbuild/issues/3025
     test(['in.js', '--outfile=node.js'].concat(flags), {
       'in.js': `
         class Foo {
@@ -5722,7 +5722,7 @@ for (let flags of [['--target=es2022'], ['--target=es6'], ['--bundle', '--target
       `,
     }),
 
-    // https://github.com/evanw/esbuild/issues/2389
+    // https://github.com/aperturerobotics/esbuild/issues/2389
     test(['in.js', '--outfile=node.js', '--minify', '--keep-names'].concat(flags), {
       'in.js': `
         class DirectlyReferenced { static type = DirectlyReferenced.name }
@@ -5763,7 +5763,7 @@ for (let flags of [['--target=es2022'], ['--target=es6'], ['--bundle', '--target
       `,
     }),
 
-    // https://github.com/evanw/esbuild/issues/2629
+    // https://github.com/aperturerobotics/esbuild/issues/2629
     test(['in.ts', '--outfile=node.js'].concat(flags), {
       'in.ts': `
         // Stub out the decorator so TSC doesn't complain.
@@ -5786,7 +5786,7 @@ for (let flags of [['--target=es2022'], ['--target=es6'], ['--bundle', '--target
       }`,
     }),
 
-    // https://github.com/evanw/esbuild/issues/2045
+    // https://github.com/aperturerobotics/esbuild/issues/2045
     test(['in.js', '--bundle', '--outfile=node.js', '--log-override:class-name-will-throw=silent'].concat(flags), {
       'in.js': `
         let A = {a: 'a'} // This should not be used
@@ -5874,7 +5874,7 @@ for (let flags of [['--target=es2022'], ['--target=es6'], ['--bundle', '--target
       `,
     }),
 
-    // https://github.com/evanw/esbuild/issues/3326
+    // https://github.com/aperturerobotics/esbuild/issues/3326
     test(['in.ts', '--outfile=node.js'].concat(flags), {
       'in.ts': `
         const log: string[] = []
@@ -5899,7 +5899,7 @@ for (let flags of [['--target=es2022'], ['--target=es6'], ['--bundle', '--target
       }`,
     }),
 
-    // https://github.com/evanw/esbuild/issues/3394
+    // https://github.com/aperturerobotics/esbuild/issues/3394
     test(['in.ts', '--outfile=node.js'].concat(flags), {
       'in.ts': `
         const dec = (arg: number): ParameterDecorator => () => { answer = arg }
@@ -5921,7 +5921,7 @@ for (let flags of [['--target=es2022'], ['--target=es6'], ['--bundle', '--target
       }`,
     }),
 
-    // https://github.com/evanw/esbuild/issues/3538
+    // https://github.com/aperturerobotics/esbuild/issues/3538
     test(['in.js', '--outfile=node.js'].concat(flags), {
       'in.js': `
         class Foo extends Array {
@@ -5999,7 +5999,7 @@ for (let flags of [['--target=es2022'], ['--target=es6'], ['--bundle', '--target
       }`,
     }),
 
-    // https://github.com/evanw/esbuild/issues/3559
+    // https://github.com/aperturerobotics/esbuild/issues/3559
     test(['in.ts', '--outfile=node.js'].concat(flags), {
       'in.ts': `
         class Foo extends Array {
@@ -6071,7 +6071,7 @@ for (let flags of [['--target=es2022'], ['--target=es6'], ['--bundle', '--target
       }`,
     }),
 
-    // https://github.com/evanw/esbuild/issues/3913
+    // https://github.com/aperturerobotics/esbuild/issues/3913
     test(['in.ts', '--outfile=node.js'].concat(flags), {
       'in.ts': `
         function testDecorator(_value: unknown, context: DecoratorContext) {
@@ -6216,7 +6216,7 @@ for (let flags of [['--target=es2022'], ['--target=es6'], ['--bundle', '--target
     }, { async: true }),
   )
 
-  // https://github.com/evanw/esbuild/issues/3177
+  // https://github.com/aperturerobotics/esbuild/issues/3177
   const input3177 = `
     const props: Record<number, string> = {}
     const dec = (n: number) => (_: any, prop: string): void => {
@@ -6408,7 +6408,7 @@ for (let flags of [['--target=es2022'], ['--target=es6'], ['--bundle', '--target
     }),
   )
 
-  // https://github.com/evanw/esbuild/issues/3768
+  // https://github.com/aperturerobotics/esbuild/issues/3768
   tests.push(
     test(['in.ts', '--outfile=node.js'].concat(flags), {
       'in.ts': `
@@ -7250,7 +7250,7 @@ for (let flags of [[], ['--target=es2017'], ['--target=es6']]) {
       `,
     }, { async: true }),
     test(['in.js', '--outfile=node.js', '--bundle'].concat(flags), {
-      // Check edge case in https://github.com/evanw/esbuild/issues/2158
+      // Check edge case in https://github.com/aperturerobotics/esbuild/issues/2158
       'in.js': `
       class Foo {
         constructor(x) {
@@ -7487,7 +7487,7 @@ for (let flags of [[], ['--target=es2017'], ['--target=es6']]) {
       `,
     }, { async: true }),
 
-    // https://github.com/evanw/esbuild/issues/4141
+    // https://github.com/aperturerobotics/esbuild/issues/4141
     test(['in.js', '--outfile=node.js'].concat(flags), {
       'in.js': `
         exports.async = () => new Promise((resolve, reject) => {
@@ -7969,7 +7969,7 @@ tests.push(
   }),
 
   // "sideEffects": false
-  // https://github.com/evanw/esbuild/issues/1081
+  // https://github.com/aperturerobotics/esbuild/issues/1081
   test(['entry.js', '--outdir=out', '--splitting', '--format=esm', '--bundle', '--chunk-names=[name]'], {
     'entry.js': `import('./a'); import('./b')`,
     'a.js': `import { bar } from './shared'; bar()`,
@@ -8006,7 +8006,7 @@ tests.push(
   }),
 
   // Code splitting where only one entry point uses the runtime
-  // https://github.com/evanw/esbuild/issues/1123
+  // https://github.com/aperturerobotics/esbuild/issues/1123
   test(['a.js', 'b.js', '--outdir=out', '--splitting', '--format=esm', '--bundle'], {
     'a.js': `
       import * as foo from './shared'
@@ -8033,7 +8033,7 @@ tests.push(
   }),
 
   // Code splitting with a dynamic import that imports a CSS file
-  // https://github.com/evanw/esbuild/issues/1125
+  // https://github.com/aperturerobotics/esbuild/issues/1125
   test(['parent.js', '--outdir=out', '--splitting', '--format=esm', '--bundle'], {
     'parent.js': `
       // This should import the primary JS chunk, not the secondary CSS chunk
@@ -8054,7 +8054,7 @@ tests.push(
 
   // Code splitting with an entry point that exports two different
   // symbols with the same original name (minified and not minified)
-  // https://github.com/evanw/esbuild/issues/1201
+  // https://github.com/aperturerobotics/esbuild/issues/1201
   test(['entry1.js', 'entry2.js', '--outdir=out', '--splitting', '--format=esm', '--bundle'], {
     'test1.js': `export const sameName = { test: 1 }`,
     'test2.js': `export const sameName = { test: 2 }`,
@@ -8084,7 +8084,7 @@ tests.push(
     `,
   }),
 
-  // https://github.com/evanw/esbuild/issues/1252
+  // https://github.com/aperturerobotics/esbuild/issues/1252
   test(['client.js', 'utilities.js', '--splitting', '--bundle', '--format=esm', '--outdir=out'], {
     'client.js': `export { Observable } from './utilities'`,
     'utilities.js': `export { Observable } from './observable'`,
@@ -8857,7 +8857,7 @@ tests.push(
 
 // Test for a Windows-specific issue where paths starting with "/" could be
 // treated as relative paths, leading to inconvenient cross-platform failures:
-// https://github.com/evanw/esbuild/issues/822
+// https://github.com/aperturerobotics/esbuild/issues/822
 tests.push(
   test(['in.js', '--bundle'], {
     'in.js': `

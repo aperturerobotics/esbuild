@@ -3,8 +3,8 @@ package js_parser
 import (
 	"testing"
 
-	"github.com/evanw/esbuild/internal/compat"
-	"github.com/evanw/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/compat"
+	"github.com/aperturerobotics/esbuild/internal/config"
 )
 
 func expectParseErrorTS(t *testing.T, contents string, expected string) {
@@ -1687,7 +1687,7 @@ var Foo = /* @__PURE__ */ ((Foo) => {
 bar = 0 /* FOO */;
 `)
 
-	// https://github.com/evanw/esbuild/issues/3205
+	// https://github.com/aperturerobotics/esbuild/issues/3205
 	expectPrintedTS(t, "() => { const enum Foo { A } () => Foo.A }", `() => {
   let Foo;
   ((Foo) => {
@@ -2371,12 +2371,12 @@ func TestTSArrow(t *testing.T) {
 	expectParseErrorTargetTS(t, 5, "return check ? (hover = 2, bar) => 0 : baz()",
 		"<stdin>: ERROR: Transforming default arguments to the configured target environment is not supported yet\n")
 
-	// https://github.com/evanw/esbuild/issues/4027
+	// https://github.com/aperturerobotics/esbuild/issues/4027
 	expectPrintedTS(t, "function f(async?) { g(async in x) }", "function f(async) {\n  g(async in x);\n}\n")
 	expectPrintedTS(t, "function f(async?) { g(async as boolean) }", "function f(async) {\n  g(async);\n}\n")
 	expectPrintedTS(t, "function f() { g(async as => boolean) }", "function f() {\n  g(async (as) => boolean);\n}\n")
 
-	// https://github.com/evanw/esbuild/issues/4241
+	// https://github.com/aperturerobotics/esbuild/issues/4241
 	expectPrintedTS(t, "x = a ? (b = c) : d", "x = a ? b = c : d;\n")
 	expectPrintedTS(t, "x = a ? (b = c) : d => e", "x = a ? b = c : (d) => e;\n")
 	expectPrintedTS(t, "x = a ? (b = c) : T => d : (e = f)", "x = a ? (b = c) => d : e = f;\n")
@@ -2765,7 +2765,7 @@ func TestTSInstantiationExpression(t *testing.T) {
 	expectParseErrorTS(t, "x<true>\nimport<T>('y')", "<stdin>: ERROR: Unexpected \"<\"\n")
 	expectParseErrorTS(t, "new x<true>\nimport<T>('y')", "<stdin>: ERROR: Unexpected \"<\"\n")
 
-	// See: https://github.com/evanw/esbuild/issues/2201
+	// See: https://github.com/aperturerobotics/esbuild/issues/2201
 	expectParseErrorTS(t, "return Array < ;", "<stdin>: ERROR: Unexpected \";\"\n")
 	expectParseErrorTS(t, "return Array < > ;", "<stdin>: ERROR: Unexpected \">\"\n")
 	expectParseErrorTS(t, "return Array < , > ;", "<stdin>: ERROR: Unexpected \",\"\n")
@@ -3286,7 +3286,7 @@ func TestTSES5(t *testing.T) {
 	// Errors from lowering hypothetical arrow function arguments to ES5 should
 	// not leak out when backtracking. This comes up when parentheses are followed
 	// by a colon in TypeScript because the colon could deliminate an arrow
-	// function return type. See: https://github.com/evanw/esbuild/issues/2375.
+	// function return type. See: https://github.com/aperturerobotics/esbuild/issues/2375.
 	expectPrintedTargetTS(t, 2015, "0 ? ([]) : 0", "0 ? [] : 0;\n")
 	expectPrintedTargetTS(t, 2015, "0 ? ({}) : 0", "0 ? {} : 0;\n")
 	expectPrintedTargetTS(t, 5, "0 ? ([]) : 0", "0 ? [] : 0;\n")

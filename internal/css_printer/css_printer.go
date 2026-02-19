@@ -5,14 +5,14 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/evanw/esbuild/internal/ast"
-	"github.com/evanw/esbuild/internal/compat"
-	"github.com/evanw/esbuild/internal/config"
-	"github.com/evanw/esbuild/internal/css_ast"
-	"github.com/evanw/esbuild/internal/css_lexer"
-	"github.com/evanw/esbuild/internal/helpers"
-	"github.com/evanw/esbuild/internal/logger"
-	"github.com/evanw/esbuild/internal/sourcemap"
+	"github.com/aperturerobotics/esbuild/internal/ast"
+	"github.com/aperturerobotics/esbuild/internal/compat"
+	"github.com/aperturerobotics/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/css_ast"
+	"github.com/aperturerobotics/esbuild/internal/css_lexer"
+	"github.com/aperturerobotics/esbuild/internal/helpers"
+	"github.com/aperturerobotics/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/sourcemap"
 )
 
 const quoteForURL byte = 0
@@ -1248,7 +1248,7 @@ func (p *printer) printTokens(tokens []css_ast.Token, opts printTokensOpts) bool
 				// substitution, then we can't be sure that it will form a valid URL
 				// token when unquoted (e.g. it may contain spaces). So we need to
 				// quote the unique key here just in case. For more info see this
-				// issue: https://github.com/evanw/esbuild/issues/3410
+				// issue: https://github.com/aperturerobotics/esbuild/issues/3410
 				tryToAvoidQuote = false
 			} else if p.options.LineLimit > 0 && p.currentLineLength()+len(text) >= p.options.LineLimit {
 				tryToAvoidQuote = false

@@ -498,7 +498,7 @@ const toSearchAbsoluteSourcesURL = {
 
 // This test case was generated using the "shadow-cljs" tool by someone who has
 // no idea how to write Clojure code (i.e. me). See the following GitHub issue
-// for more details: https://github.com/evanw/esbuild/issues/3439
+// for more details: https://github.com/aperturerobotics/esbuild/issues/3439
 //
 // Note that the mappings in the Clojure output strangely seem to be really
 // buggy. Many sub-expressions with two operands map the operands switched,
@@ -563,7 +563,7 @@ const toSearchIndexSourceMap = {
 // containing a mapping with an index of a source that's out of bounds of the
 // "sources" array. This happened when generating the namespace exports chunk
 // which in this case is triggered by "export * as it from". For more
-// information, see: https://github.com/evanw/esbuild/issues/4080
+// information, see: https://github.com/aperturerobotics/esbuild/issues/4080
 const testCaseNullMappingIssue4080 = {
   'foo.js': `// foo.js
 here.is.some.code = "foo!";

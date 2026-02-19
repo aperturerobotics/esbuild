@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/evanw/esbuild/internal/test"
+	"github.com/aperturerobotics/esbuild/internal/test"
 )
 
 func TestStripDirPrefix(t *testing.T) {
@@ -32,7 +32,7 @@ func TestStripDirPrefix(t *testing.T) {
 	}
 
 	// Note: People sometimes set "outdir" to "/" and expect that to work:
-	// https://github.com/evanw/esbuild/issues/3027
+	// https://github.com/aperturerobotics/esbuild/issues/3027
 
 	expectSuccess(`/foo/bar/baz`, ``, `/`, `/foo/bar/baz`)
 	expectSuccess(`/foo/bar/baz`, `/`, `/`, `foo/bar/baz`)

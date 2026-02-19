@@ -3,8 +3,8 @@ package bundler_tests
 import (
 	"testing"
 
-	"github.com/evanw/esbuild/internal/compat"
-	"github.com/evanw/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/compat"
+	"github.com/aperturerobotics/esbuild/internal/config"
 )
 
 var css_suite = suite{
@@ -302,7 +302,7 @@ func TestImportLocalCSSFromJSMinifyIdentifiersAvoidGlobalNames(t *testing.T) {
 	})
 }
 
-// See: https://github.com/evanw/esbuild/issues/3295
+// See: https://github.com/aperturerobotics/esbuild/issues/3295
 func TestImportLocalCSSFromJSMinifyIdentifiersMultipleEntryPoints(t *testing.T) {
 	css_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -2159,7 +2159,7 @@ func TestCSSNestingOldBrowser(t *testing.T) {
 			"/media-plus.css":             `@media screen { + b { color: red; } }`,
 			"/media-tilde.css":            `@media screen { ~ b { color: red; } }`,
 
-			// See: https://github.com/evanw/esbuild/issues/3197
+			// See: https://github.com/aperturerobotics/esbuild/issues/3197
 			"/page-no-warning.css": `@page { @top-left { background: red } }`,
 		},
 		entryPaths: []string{

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/evanw/esbuild/internal/css_ast"
-	"github.com/evanw/esbuild/internal/css_lexer"
-	"github.com/evanw/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/css_ast"
+	"github.com/aperturerobotics/esbuild/internal/css_lexer"
+	"github.com/aperturerobotics/esbuild/internal/logger"
 )
 
 type parseSelectorOpts struct {

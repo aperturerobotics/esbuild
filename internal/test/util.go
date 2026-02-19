@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/evanw/esbuild/internal/fs"
-	"github.com/evanw/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/fs"
+	"github.com/aperturerobotics/esbuild/internal/logger"
 )
 
 func AssertEqual(t *testing.T, observed interface{}, expected interface{}) {

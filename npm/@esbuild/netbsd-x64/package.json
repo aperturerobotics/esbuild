@@ -4,7 +4,7 @@
   "description": "The NetBSD AMD64 binary for esbuild, a JavaScript bundler.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/evanw/esbuild.git"
+    "url": "git+https://github.com/aperturerobotics/esbuild.git"
   },
   "license": "MIT",
   "engines": {

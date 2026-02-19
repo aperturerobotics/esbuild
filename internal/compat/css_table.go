@@ -3,7 +3,7 @@
 package compat
 
 import (
-	"github.com/evanw/esbuild/internal/css_ast"
+	"github.com/aperturerobotics/esbuild/internal/css_ast"
 )
 
 type CSSFeature uint16

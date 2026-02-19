@@ -3,11 +3,11 @@ package js_parser
 import (
 	"fmt"
 
-	"github.com/evanw/esbuild/internal/compat"
-	"github.com/evanw/esbuild/internal/helpers"
-	"github.com/evanw/esbuild/internal/js_ast"
-	"github.com/evanw/esbuild/internal/js_lexer"
-	"github.com/evanw/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/compat"
+	"github.com/aperturerobotics/esbuild/internal/helpers"
+	"github.com/aperturerobotics/esbuild/internal/js_ast"
+	"github.com/aperturerobotics/esbuild/internal/js_lexer"
+	"github.com/aperturerobotics/esbuild/internal/logger"
 )
 
 type jsonParser struct {

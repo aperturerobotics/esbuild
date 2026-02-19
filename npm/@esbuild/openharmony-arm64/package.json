@@ -4,7 +4,7 @@
   "description": "A WebAssembly shim for esbuild on OpenHarmony ARM64.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/evanw/esbuild.git"
+    "url": "git+https://github.com/aperturerobotics/esbuild.git"
   },
   "license": "MIT",
   "preferUnplugged": true,

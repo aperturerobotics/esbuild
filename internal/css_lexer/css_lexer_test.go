@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/evanw/esbuild/internal/logger"
-	"github.com/evanw/esbuild/internal/test"
+	"github.com/aperturerobotics/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/test"
 )
 
 func lexToken(contents string) (T, string) {

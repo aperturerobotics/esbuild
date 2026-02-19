@@ -3,7 +3,7 @@ package bundler_tests
 import (
 	"testing"
 
-	"github.com/evanw/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/config"
 )
 
 var importphase_suite = suite{

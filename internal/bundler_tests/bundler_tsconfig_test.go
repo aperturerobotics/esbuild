@@ -3,7 +3,7 @@ package bundler_tests
 import (
 	"testing"
 
-	"github.com/evanw/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/config"
 )
 
 var tsconfig_suite = suite{
@@ -380,7 +380,7 @@ Users/user/project/tsconfig.json: WARNING: Non-relative path "http://bad" is not
 	})
 }
 
-// https://github.com/evanw/esbuild/issues/913
+// https://github.com/aperturerobotics/esbuild/issues/913
 func TestTsconfigPathsOverriddenBaseURL(t *testing.T) {
 	tsconfig_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -2512,7 +2512,7 @@ func TestTsconfigJsonTopLevelMistakeWarning(t *testing.T) {
 	})
 }
 
-// https://github.com/evanw/esbuild/issues/3307
+// https://github.com/aperturerobotics/esbuild/issues/3307
 func TestTsconfigJsonBaseUrlIssue3307(t *testing.T) {
 	tsconfig_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -2539,7 +2539,7 @@ func TestTsconfigJsonBaseUrlIssue3307(t *testing.T) {
 	})
 }
 
-// https://github.com/evanw/esbuild/issues/3354
+// https://github.com/aperturerobotics/esbuild/issues/3354
 func TestTsconfigJsonAsteriskNameCollisionIssue3354(t *testing.T) {
 	tsconfig_suite.expectBundled(t, bundled{
 		files: map[string]string{

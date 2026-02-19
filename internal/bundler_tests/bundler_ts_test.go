@@ -4,8 +4,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/evanw/esbuild/internal/compat"
-	"github.com/evanw/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/compat"
+	"github.com/aperturerobotics/esbuild/internal/config"
 )
 
 var ts_suite = suite{
@@ -1202,7 +1202,7 @@ func TestTSExperimentalDecoratorsKeepNames(t *testing.T) {
 	})
 }
 
-// See: https://github.com/evanw/esbuild/issues/2147
+// See: https://github.com/aperturerobotics/esbuild/issues/2147
 func TestTSExperimentalDecoratorScopeIssue2147(t *testing.T) {
 	ts_suite.expectBundled(t, bundled{
 		files: map[string]string{

@@ -7,11 +7,11 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/evanw/esbuild/internal/ast"
-	"github.com/evanw/esbuild/internal/compat"
-	"github.com/evanw/esbuild/internal/css_ast"
-	"github.com/evanw/esbuild/internal/js_ast"
-	"github.com/evanw/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/ast"
+	"github.com/aperturerobotics/esbuild/internal/compat"
+	"github.com/aperturerobotics/esbuild/internal/css_ast"
+	"github.com/aperturerobotics/esbuild/internal/js_ast"
+	"github.com/aperturerobotics/esbuild/internal/logger"
 )
 
 type JSXOptions struct {
@@ -704,7 +704,7 @@ type InjectedFile struct {
 	Exports      []InjectableExport
 	DefineName   string // For injected files generated when you "--define" a non-literal
 	Source       logger.Source
-	IsCopyLoader bool // If you set the loader to "copy" (see https://github.com/evanw/esbuild/issues/3041)
+	IsCopyLoader bool // If you set the loader to "copy" (see https://github.com/aperturerobotics/esbuild/issues/3041)
 }
 
 type InjectableExport struct {

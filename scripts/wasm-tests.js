@@ -325,7 +325,7 @@ const tests = {
 `)
   },
 
-  // https://github.com/evanw/esbuild/issues/3001
+  // https://github.com/aperturerobotics/esbuild/issues/3001
   nodePathsReaddirEINVAL({ testDir, esbuildPathWASM }) {
     const libDir = path.join(testDir, 'lib');
     const libFile = path.join(libDir, 'file.js');

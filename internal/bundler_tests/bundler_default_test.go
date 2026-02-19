@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/evanw/esbuild/internal/bundler"
-	"github.com/evanw/esbuild/internal/compat"
-	"github.com/evanw/esbuild/internal/config"
-	"github.com/evanw/esbuild/internal/helpers"
-	"github.com/evanw/esbuild/internal/js_ast"
-	"github.com/evanw/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/bundler"
+	"github.com/aperturerobotics/esbuild/internal/compat"
+	"github.com/aperturerobotics/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/helpers"
+	"github.com/aperturerobotics/esbuild/internal/js_ast"
+	"github.com/aperturerobotics/esbuild/internal/logger"
 )
 
 var default_suite = suite{
@@ -1327,7 +1327,7 @@ func TestSourceMap(t *testing.T) {
 			"/Users/user/project/src/bar.js": `
 				export function bar() { throw new Error('test') }
 			`,
-			// Someone wanted data from the text loader to show up in the source map: https://github.com/evanw/esbuild/issues/2041
+			// Someone wanted data from the text loader to show up in the source map: https://github.com/aperturerobotics/esbuild/issues/2041
 			"/Users/user/project/src/data.txt": `#2041`,
 		},
 		entryPaths: []string{"/Users/user/project/src/entry.js"},
@@ -1711,7 +1711,7 @@ func TestExportSpecialNameBundle(t *testing.T) {
 	})
 }
 
-// https://github.com/evanw/esbuild/issues/3544
+// https://github.com/aperturerobotics/esbuild/issues/3544
 func TestNodeAnnotationFalsePositiveIssue3544(t *testing.T) {
 	default_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -1736,7 +1736,7 @@ func TestNodeAnnotationFalsePositiveIssue3544(t *testing.T) {
 	})
 }
 
-// https://github.com/evanw/esbuild/issues/4100
+// https://github.com/aperturerobotics/esbuild/issues/4100
 func TestNodeAnnotationInvalidIdentifierIssue4100(t *testing.T) {
 	default_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -3871,7 +3871,7 @@ func TestLegalCommentsManyLinked(t *testing.T) {
 	})
 }
 
-// https://github.com/evanw/esbuild/issues/4139
+// https://github.com/aperturerobotics/esbuild/issues/4139
 func TestLegalCommentsMergeDuplicatesIssue4139(t *testing.T) {
 	default_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -5492,7 +5492,7 @@ func TestDefineOptionalChainLowered(t *testing.T) {
 	})
 }
 
-// See: https://github.com/evanw/esbuild/issues/3551
+// See: https://github.com/aperturerobotics/esbuild/issues/3551
 func TestDefineOptionalChainPanicIssue3551(t *testing.T) {
 	defines := config.ProcessDefines([]config.DefineData{
 		{
@@ -5552,7 +5552,7 @@ func TestDefineOptionalChainPanicIssue3551(t *testing.T) {
 	})
 }
 
-// See: https://github.com/evanw/esbuild/issues/2407
+// See: https://github.com/aperturerobotics/esbuild/issues/2407
 func TestDefineInfiniteLoopIssue2407(t *testing.T) {
 	defines := config.ProcessDefines([]config.DefineData{
 		{
@@ -6706,7 +6706,7 @@ func TestRequireShimSubstitution(t *testing.T) {
 
 // This guards against a bad interaction between the strict mode nested function
 // declarations, name keeping, and initialized variable inlining. See this issue
-// for full context: https://github.com/evanw/esbuild/issues/1552.
+// for full context: https://github.com/aperturerobotics/esbuild/issues/1552.
 func TestStrictModeNestedFnDeclKeepNamesVariableInliningIssue1552(t *testing.T) {
 	default_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -7602,7 +7602,7 @@ func TestManglePropsLoweredClassFields(t *testing.T) {
 // This tests for a case where "constructor" was being mangled, which made the
 // method become a non-constructor, and then "super()" caused a parse error.
 // The fix was to prevent the property "constructor" from being mangled.
-// See: https://github.com/evanw/esbuild/issues/1976
+// See: https://github.com/aperturerobotics/esbuild/issues/1976
 func TestManglePropsSuperCall(t *testing.T) {
 	default_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -7858,7 +7858,7 @@ func TestIndirectRequireMessage(t *testing.T) {
 			"/assign.js": `require = x`,
 			"/ident.js":  `let x = require`,
 
-			// These shouldn't log anything: https://github.com/evanw/esbuild/issues/812
+			// These shouldn't log anything: https://github.com/aperturerobotics/esbuild/issues/812
 			"/dot.js":   `let x = require.cache`,
 			"/index.js": `let x = require[cache]`,
 		},
@@ -7906,7 +7906,7 @@ b.js: NOTE: Another definition of "x" comes from "b.js" here:
 	})
 }
 
-// See: https://github.com/evanw/esbuild/issues/2537
+// See: https://github.com/aperturerobotics/esbuild/issues/2537
 func TestNonDeterminismIssue2537(t *testing.T) {
 	default_suite.expectBundled(t, bundled{
 		files: map[string]string{
@@ -7942,7 +7942,7 @@ func TestNonDeterminismIssue2537(t *testing.T) {
 	})
 }
 
-// See: https://github.com/evanw/esbuild/issues/2697
+// See: https://github.com/aperturerobotics/esbuild/issues/2697
 func TestMinifiedJSXPreserveWithObjectSpread(t *testing.T) {
 	default_suite.expectBundled(t, bundled{
 		files: map[string]string{

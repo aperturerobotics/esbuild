@@ -4,7 +4,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
 ## 0.8.28
 
-* Add a `--summary` flag that prints helpful information after a build ([#631](https://github.com/evanw/esbuild/issues/631))
+* Add a `--summary` flag that prints helpful information after a build ([#631](https://github.com/aperturerobotics/esbuild/issues/631))
 
     Normally esbuild's CLI doesn't print anything after doing a build if nothing went wrong. This allows esbuild to be used as part of a more complex chain of tools without the output cluttering the terminal. However, sometimes it is nice to have a quick overview in your terminal of what the build just did. You can now add the `--summary` flag when using the CLI and esbuild will print a summary of what the build generated. It looks something like this:
 
@@ -17,7 +17,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
     ⚡ Done in 43ms
     ```
 
-* Keep unused imports in TypeScript code in one specific case ([#604](https://github.com/evanw/esbuild/issues/604))
+* Keep unused imports in TypeScript code in one specific case ([#604](https://github.com/aperturerobotics/esbuild/issues/604))
 
     The official TypeScript compiler always removes imported symbols that aren't used as values when converting TypeScript to JavaScript. This is because these symbols could be types and not removing them could result in a run-time module instantiation failure because of missing exports. This even happens when the `tsconfig.json` setting `"importsNotUsedAsValues"` is set to `"preserve"`. Doing this just keeps the import statement itself but confusingly still removes the imports that aren't used as values.
 
@@ -48,23 +48,23 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
 ## 0.8.27
 
-* Mark `import.meta` as supported in node 10.4+ ([#626](https://github.com/evanw/esbuild/issues/626))
+* Mark `import.meta` as supported in node 10.4+ ([#626](https://github.com/aperturerobotics/esbuild/issues/626))
 
     It was previously marked as unsupported due to a typo in esbuild's compatibility table, which meant esbuild generated a shim for `import.meta` even when it's not necessary. It should now be marked as supported in node 10.4 and above so the shim will no longer be included when using a sufficiently new target environment such as `--target=node10.4`.
 
-* Fix for when the working directory ends with `/` ([#627](https://github.com/evanw/esbuild/issues/627))
+* Fix for when the working directory ends with `/` ([#627](https://github.com/aperturerobotics/esbuild/issues/627))
 
     If the working directory ended in `/`, the last path component would be incorrectly duplicated. This was the case when running esbuild with Yarn 2 (but not Yarn 1) and is problematic because some externally-facing directories reference the current working directory in plugins and in output files. The problem has now been fixed and the last path component is no longer duplicated in this case. This fix was contributed by [@remorses](https://github.com/remorses).
 
-* Add an option to omit `sourcesContent` from generated source maps ([#624](https://github.com/evanw/esbuild/issues/624))
+* Add an option to omit `sourcesContent` from generated source maps ([#624](https://github.com/aperturerobotics/esbuild/issues/624))
 
     You can now pass `--sources-content=false` to omit the `sourcesContent` field from generated source maps. The field embeds the original source code inline in the source map and is the largest part of the source map. This is useful if you don't need the original source code and would like a smaller source map (e.g. you only care about stack traces and don't need the source code for debugging).
 
-* Fix exports from ESM files converted to CJS during code splitting ([#617](https://github.com/evanw/esbuild/issues/617))
+* Fix exports from ESM files converted to CJS during code splitting ([#617](https://github.com/aperturerobotics/esbuild/issues/617))
 
     This release fixes an edge case where files in ECMAScript module format that are converted to CommonJS format during bundling can generate exports to non-top-level symbols when code splitting is active. These files must be converted to CommonJS format if they are referenced by a `require()` call. When that happens, the symbols in that file are placed inside the CommonJS wrapper closure and are no longer top-level symbols. This means they should no longer be considered exportable for cross-chunk export generation due to code splitting. The result of this fix is that these cases no longer generate output files with module instantiation errors.
 
-* Allow `--define` with array and object literals ([#581](https://github.com/evanw/esbuild/issues/581))
+* Allow `--define` with array and object literals ([#581](https://github.com/aperturerobotics/esbuild/issues/581))
 
     The `--define` feature allows you to replace identifiers such as `DEBUG` with literal expressions such as `false`. This is valuable because the substitution can then participate in constant folding and dead code elimination. For example, `if (DEBUG) { ... }` could become `if (false) { ... }` which would then be completely removed in minified builds. However, doing this with compound literal expressions such as array and object literals is an anti-pattern because it could easily result in many copies of the same object in the output file.
 
@@ -76,7 +76,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     The change in version 0.8.24 to share service instances caused problems for code that calls `process.chdir()` before calling `startService()` to be able to get a service with a different working directory. With this release, calls to `startService()` no longer share the service instance if the working directory was different at the time of creation.
 
-* Consider import references to be side-effect free ([#613](https://github.com/evanw/esbuild/issues/613))
+* Consider import references to be side-effect free ([#613](https://github.com/aperturerobotics/esbuild/issues/613))
 
     This change improves tree shaking for code containing top-level references to imported symbols such as the following code:
 
@@ -117,37 +117,37 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     Code using esbuild's `transformSync` function via Yarn 2 experienced a dramatic slowdown in esbuild version 0.8.4 and above. This version added a wrapper script to fix Yarn 2's incompatibility with binary packages. Some code that tries to avoid unnecessarily calling into the wrapper script contained a bug that caused it to fail, which meant that using `transformSync` with Yarn 2 called into the wrapper script unnecessarily. This launched an extra node process every time the esbuild executable was invoked which can be over 6x slower than just invoking the esbuild executable directly. This release should now invoke the esbuild executable directly without going through the wrapper script, which fixes the performance regression.
 
-* Fix a size regression from version 0.7.9 with certain source maps ([#611](https://github.com/evanw/esbuild/issues/611))
+* Fix a size regression from version 0.7.9 with certain source maps ([#611](https://github.com/aperturerobotics/esbuild/issues/611))
 
     Version 0.7.9 added a new behavior to esbuild where in certain cases a JavaScript file may be split into multiple pieces during bundling. Pieces of the same input file may potentially end up in multiple discontiguous regions in the output file. This was necessary to fix an import ordering bug with CommonJS modules. However, it had the side effect of duplicating that file's information in the resulting source map. This didn't affect source map correctness but it made source maps unnecessarily large. This release corrects the problem by ensuring that a given file's information is only ever represented once in the corresponding source map.
 
 ## 0.8.24
 
-* Share reference-counted service instances internally ([#600](https://github.com/evanw/esbuild/issues/600))
+* Share reference-counted service instances internally ([#600](https://github.com/aperturerobotics/esbuild/issues/600))
 
     Now calling `startService()` multiple times will share the underlying esbuild child process as long as the lifetimes of the service objects overlap (i.e. the time from `startService()` to `service.stop()`). This is just an internal change; there is no change to the public API. It should result in a faster implementation that uses less memory if your code calls `startService()` multiple times. Previously each call to `startService()` generated a separate esbuild child process.
 
-* Fix re-exports of a side-effect free CommonJS module ([#605](https://github.com/evanw/esbuild/issues/605))
+* Fix re-exports of a side-effect free CommonJS module ([#605](https://github.com/aperturerobotics/esbuild/issues/605))
 
     This release fixes a regression introduced in version 0.8.19 in which an `import` of an `export {...} from` re-export of a CommonJS module does not include the CommonJS module if it has been marked as `"sideEffects": false` in its `package.json` file. This was the case with the [Ramda](https://ramdajs.com/) library, and was due to an unhandled case in the linker.
 
-* Optionally take binary executable path from environment variable ([#592](https://github.com/evanw/esbuild/issues/592))
+* Optionally take binary executable path from environment variable ([#592](https://github.com/aperturerobotics/esbuild/issues/592))
 
     You can now set the `ESBUILD_BINARY_PATH` environment variable to cause the JavaScript API to use a different binary executable path. This is useful if you want to substitute a modified version of the `esbuild` binary that contains some extra debugging information. This feature was contributed by [@remorses](https://github.com/remorses).
 
 ## 0.8.23
 
-* Fix non-string objects being passed to `transformSync` ([#596](https://github.com/evanw/esbuild/issues/596))
+* Fix non-string objects being passed to `transformSync` ([#596](https://github.com/aperturerobotics/esbuild/issues/596))
 
     The transform function is only supposed to take a string. The type definitions also specify that the input must be a string. However, it happened to convert non-string inputs to a string and some code relied on that behavior. A change in 0.8.22 broke that behavior for `transformSync` specifically for `Uint8Array` objects, which became an array of numbers instead of a string. This release ensures that the conversion to a string is done up front to avoid something unexpected happening in the implementation. Future releases will likely enforce that the input is a string and throw an error otherwise.
 
-* Revert the speedup to `transformSync` and `buildSync` ([#595](https://github.com/evanw/esbuild/issues/595))
+* Revert the speedup to `transformSync` and `buildSync` ([#595](https://github.com/aperturerobotics/esbuild/issues/595))
 
     This speedup relies on the `worker_threads` module in node. However, when esbuild is used via `node -r` as in `node -r esbuild-register file.ts`, the worker thread created by esbuild somehow ends up being completely detached from the main thread. This may be a bug in node itself. Regardless, the approach esbuild was using to improve speed doesn't work in all cases so it has been reverted. It's unclear if it's possible to work around this issue. This approach for improving the speed of synchronous APIs may be a dead end.
 
 ## 0.8.22
 
-* Escape fewer characters in virtual module paths ([#588](https://github.com/evanw/esbuild/issues/588))
+* Escape fewer characters in virtual module paths ([#588](https://github.com/aperturerobotics/esbuild/issues/588))
 
     If a module's path is not in the `file` namespace (i.e. it was created by a plugin), esbuild doesn't assume it's a file system path. The meaning of these paths is entirely up to the plugin. It could be anything including a HTTP URL, a string of code, or randomly-generated characters.
 
@@ -157,25 +157,25 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     In the future the output file name of a virtual module will likely be completely customizable with a plugin, so it will be possible to have different behavior for this if desired. But that isn't possible quite yet.
 
-* Speed up the JavaScript `buildSync` and `transformSync` APIs ([#590](https://github.com/evanw/esbuild/issues/590))
+* Speed up the JavaScript `buildSync` and `transformSync` APIs ([#590](https://github.com/aperturerobotics/esbuild/issues/590))
 
     Previously the `buildSync` and `transformSync` API calls created a new child esbuild process on every call because communicating with a long-lived child process is asynchronous in node. However, there's a trick that can work around this limitation: esbuild can communicate with the long-lived child process from a child thread using node's [`worker_threads`](https://nodejs.org/api/worker_threads.html) module and block the main thread using JavaScript's new [Atomics API](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics/wait). This was a tip from [@cspotcode](https://github.com/cspotcode).
 
     This approach has now been implemented. A quick benchmark shows that `transformSync` is now **1.5x to 15x faster** than it used to be. The speedup depends on the size of the input (smaller inputs get a bigger speedup). The worker thread and child process should automatically be terminated when there are no more event handlers registered on the main thread, so there is no explicit `stop()` call like there is with a service object.
 
-* Distribute a 32-bit Linux ARM binary executable via npm ([#528](https://github.com/evanw/esbuild/issues/528))
+* Distribute a 32-bit Linux ARM binary executable via npm ([#528](https://github.com/aperturerobotics/esbuild/issues/528))
 
     You should now be able to use npm to install esbuild on a 32-bit Linux ARM device. This lets you run esbuild on a Raspberry Pi. Note that this target isn't officially supported because it's not covered by any automated tests.
 
 ## 0.8.21
 
-* On-resolve plugins now apply to entry points ([#546](https://github.com/evanw/esbuild/issues/546))
+* On-resolve plugins now apply to entry points ([#546](https://github.com/aperturerobotics/esbuild/issues/546))
 
     Previously entry points were required to already be resolved to valid file system paths. This meant that on-resolve plugins didn't run, which breaks certain workflows. Now entry point paths are resolved using normal import resolution rules.
 
     To avoid making this a breaking change, there is now special behavior for entry point path resolution. If the entry point path exists relative to the current working directory and the path does not start with `./` or `../`, esbuild will now automatically insert a leading `./` at the start of the path to prevent the path from being interpreted as a `node_modules` package path. This is only done if the file actually exists to avoid introducing `./` for paths with special plugin-specific syntax.
 
-* Enable the build API in the browser ([#527](https://github.com/evanw/esbuild/issues/527))
+* Enable the build API in the browser ([#527](https://github.com/aperturerobotics/esbuild/issues/527))
 
     Previously you could only use the transform API in the browser, not the build API. You can now use the build API in the browser too. There is currently no in-browser file system so the build API will not do anything by default. Using this API requires you to use plugins to provide your own file system. Instructions for running esbuild in the browser can be found here: https://esbuild.github.io/api/#running-in-the-browser.
 
@@ -197,7 +197,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     In that specific case, the transformed code could crash when run because the class name is not yet initialized when the static field initializer is run. Only JavaScript code was affected. TypeScript code was not affected. This release fixes this bug.
 
-* Remove more types of statements as dead code ([#580](https://github.com/evanw/esbuild/issues/580))
+* Remove more types of statements as dead code ([#580](https://github.com/aperturerobotics/esbuild/issues/580))
 
     This change improves dead-code elimination in the case where unused statements follow an unconditional jump, such as a `return`:
 
@@ -210,7 +210,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
 ## 0.8.19
 
-* Handle non-ambiguous multi-path re-exports ([#568](https://github.com/evanw/esbuild/pull/568))
+* Handle non-ambiguous multi-path re-exports ([#568](https://github.com/aperturerobotics/esbuild/pull/568))
 
     Wildcard re-exports using the `export * from 'path'` syntax can potentially result in name collisions that cause an export name to be ambiguous. For example, the following code would result in an ambiguous export if both `a.js` and `b.js` export a symbol with the same name:
 
@@ -252,7 +252,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     Previously bundling `entry.js` with esbuild would incorrectly generate an error about an ambiguous `x` export. Now this case builds successfully without an error.
 
-* Omit warnings about non-string paths in `await import()` inside a `try` block ([#574](https://github.com/evanw/esbuild/issues/574))
+* Omit warnings about non-string paths in `await import()` inside a `try` block ([#574](https://github.com/aperturerobotics/esbuild/issues/574))
 
     Bundling code that uses `require()` or `import()` with a non-string path currently generates a warning, because the target of that import will not be included in the bundle. This is helpful to warn about because other bundlers handle this case differently (e.g. Webpack bundles the entire directory tree and emulates a file system lookup) so existing code may expect the target of the import to be bundled.
 
@@ -260,7 +260,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
 ## 0.8.18
 
-* Fix a bug with certain complex optional chains ([#573](https://github.com/evanw/esbuild/issues/573))
+* Fix a bug with certain complex optional chains ([#573](https://github.com/aperturerobotics/esbuild/issues/573))
 
     The `?.` optional chaining operator only runs the right side of the operator if the left side is undefined, otherwise it returns undefined. This operator can be applied to both property accesses and function calls, and these can be combined into long chains of operators. These expressions must be transformed to a chain of `?:` operators if the `?.` operator isn't supported in the configured target environment. However, esbuild had a bug where an optional call of an optional property with a further property access afterward didn't preserve the value of `this` for the call. This bug has been fixed.
 
@@ -310,7 +310,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
 ## 0.8.17
 
-* Get esbuild working on the Apple M1 chip via Rosetta 2 ([#564](https://github.com/evanw/esbuild/pull/564))
+* Get esbuild working on the Apple M1 chip via Rosetta 2 ([#564](https://github.com/aperturerobotics/esbuild/pull/564))
 
     The Go compiler toolchain does not yet support the new Apple M1 chip. Go version 1.15 is currently in a feature freeze period so support will be added in the next version, Go 1.16, which will be [released in February](https://blog.golang.org/11years#TOC_3.).
 
@@ -318,19 +318,19 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
 ## 0.8.16
 
-* Improve TypeScript type definitions ([#559](https://github.com/evanw/esbuild/issues/559))
+* Improve TypeScript type definitions ([#559](https://github.com/aperturerobotics/esbuild/issues/559))
 
     The return value of the `build` API has some optional fields that are undefined unless certain arguments are present. That meant you had to use the `!` null assertion operator to avoid a type error if you have the TypeScript `strictNullChecks` setting enabled in your project. This release adds additional type information so that if the relevant arguments are present, the TypeScript compiler can tell that these optional fields on the return value will never be undefined. This change was contributed by [@lukeed](https://github.com/lukeed).
 
-* Omit a warning about `require.main` when targeting CommonJS ([#560](https://github.com/evanw/esbuild/issues/560))
+* Omit a warning about `require.main` when targeting CommonJS ([#560](https://github.com/aperturerobotics/esbuild/issues/560))
 
     A common pattern in code that's intended to be run in node is to check if `require.main === module`. That will be true if the current file is being run from the command line but false if the current file is being run because some other code called `require()` on it. Previously esbuild generated a warning about an unexpected use of `require`. Now this warning is no longer generated for `require.main` when the output format is `cjs`.
 
-* Warn about defining `process.env.NODE_ENV` as an identifier ([#466](https://github.com/evanw/esbuild/issues/466))
+* Warn about defining `process.env.NODE_ENV` as an identifier ([#466](https://github.com/aperturerobotics/esbuild/issues/466))
 
     The define feature can be used to replace an expression with either a JSON literal or an identifier. Forgetting to put quotes around a string turns it into an identifier, which is a common mistake. This release introduces a warning when you define `process.env.NODE_ENV` as an identifier instead of a string. It's very common to use define to replace `process.env.NODE_ENV` with either `"production"` or `"development"` and sometimes people accidentally replace it with `production` or `development` instead. This is worth warning about because otherwise there would be no indication that something is wrong until the code crashes when run.
 
-* Allow starting a local server at a specific host address ([#563](https://github.com/evanw/esbuild/pull/563))
+* Allow starting a local server at a specific host address ([#563](https://github.com/aperturerobotics/esbuild/pull/563))
 
     By default, esbuild's local HTTP server is only available on the internal loopback address. This is deliberate behavior for security reasons, since the local network environment may not be trusted. However, it can be useful to run the server on a different address when developing with esbuild inside of a virtual machine/docker container or to request development assets from a remote testing device on the same network at a different IP address. With this release, you can now optionally specify the host in addition to the port:
 
@@ -368,7 +368,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     With TypeScript 4.1, you can now omit `baseUrl` when using `paths`. When you do this, it as if you had written `"baseUrl": "."` instead for the purpose of the `paths` feature, but the `baseUrl` value is not actually set and does not affect path resolution. These `tsconfig.json` files are now supported by esbuild.
 
-* Fix evaluation order issue with import cycles and CommonJS-style output formats ([#542](https://github.com/evanw/esbuild/issues/542))
+* Fix evaluation order issue with import cycles and CommonJS-style output formats ([#542](https://github.com/aperturerobotics/esbuild/issues/542))
 
     Previously entry points involved in an import cycle could cause evaluation order issues if the output format was `iife` or `cjs` instead of `esm`. This happened because this edge case was handled by treating the entry point file as a CommonJS file, which extracted the code into a CommonJS wrapper. Here's an example:
 
@@ -431,7 +431,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
 ## 0.8.14
 
-* Fix a concurrency bug caused by an error message change ([#556](https://github.com/evanw/esbuild/issues/556))
+* Fix a concurrency bug caused by an error message change ([#556](https://github.com/aperturerobotics/esbuild/issues/556))
 
     An improvement to the error message for path resolution was introduced in version 0.8.12. It detects when a relative path is being interpreted as a package path because you forgot to start the path with `./`:
 
@@ -506,7 +506,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
 ## 0.8.12
 
-* Added an API for incremental builds ([#21](https://github.com/evanw/esbuild/issues/21))
+* Added an API for incremental builds ([#21](https://github.com/aperturerobotics/esbuild/issues/21))
 
     There is now an API for incremental builds. This is what using the API looks like from JavaScript:
 
@@ -547,7 +547,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     This is just the initial release of the incremental build API. Incremental build times still have room for improvement. Right now esbuild still re-resolves, re-loads, and re-links everything even if none of the input files have changed. Improvements to the incremental build mechanism will be coming in later releases.
 
-* Support for a local file server ([#537](https://github.com/evanw/esbuild/issues/537))
+* Support for a local file server ([#537](https://github.com/aperturerobotics/esbuild/issues/537))
 
     You can now run esbuild with the `--serve` flag to start a local server that serves the output files over HTTP. This is intended to be used during development. You can point your `<script>` tag to a local server URL and your JavaScript and CSS files will be automatically built by esbuild whenever that URL is accessed. The server defaults to port 8000 but you can customize the port with `--serve=...`.
 
@@ -583,11 +583,11 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     This is a similar use case to "watch mode" in other tools where something automatically rebuilds your code when a file has changed on disk. The difference is that you don't encounter the problem where you make an edit, switch to your browser, and reload only to load the old files because the rebuild hasn't finished yet. Using a HTTP request instead of a file system access gives the rebuild tool the ability to delay the load until the rebuild operation has finished so your build is always up to date.
 
-* Install to a temporary directory for Windows ([#547](https://github.com/evanw/esbuild/issues/547))
+* Install to a temporary directory for Windows ([#547](https://github.com/aperturerobotics/esbuild/issues/547))
 
     The install script runs `npm` in a temporary directory to download the correct binary executable for the current architecture. It then removes the temporary directory after the installation. However, removing a directory is sometimes impossible on Windows. To work around this problem, the install script now installs to the system's temporary directory instead of a directory inside the project itself. That way it's not problematic if a directory is left behind by the install script. This change was contributed by [@Djaler](https://github.com/Djaler).
 
-* Fix the public path ending up in the metafile ([#549](https://github.com/evanw/esbuild/issues/549))
+* Fix the public path ending up in the metafile ([#549](https://github.com/aperturerobotics/esbuild/issues/549))
 
     The change in version 0.8.7 to include the public path in import paths of code splitting chunks caused a regression where the public path was also included in the list of chunk imports in the metafile. This was unintentional. Now the public path setting should not affect the metafile contents.
 
@@ -597,7 +597,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     This aligns esbuild's TypeScript parser with the official TypeScript parser as far as parsing of `as` casts. It's not valid to form an expression after an `as` cast if the next token is a `(`, `[`, `++`, `--`, `?.`, assignment operator, or template literal. Previously esbuild wouldn't generate an error for these expressions. This is normally not a problem because the TypeScript compiler itself would reject the code as invalid. However, if the next token starts on a new line, that new token may be the start of another statement. In that case the code generated by esbuild was different than the code generated by the TypeScript compiler. This difference has been fixed.
 
-* Implement wildcards for external paths ([#406](https://github.com/evanw/esbuild/issues/406))
+* Implement wildcards for external paths ([#406](https://github.com/aperturerobotics/esbuild/issues/406))
 
     You can now use a `*` wildcard character with the `--external` option to mark all files matching a certain pattern as external, which will remove them from the bundle. For example, you can now do `--external:*.png` to remove all `.png` files. When a `*` wildcard character is present in an external path, that pattern will be applied to the original path in the source code instead of to the path after it has been resolved to a real file system path. This lets you match on paths that aren't real file system paths.
 
@@ -607,17 +607,17 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
 ## 0.8.10
 
-* Fix parsing of conditional types in TypeScript ([#541](https://github.com/evanw/esbuild/issues/541))
+* Fix parsing of conditional types in TypeScript ([#541](https://github.com/aperturerobotics/esbuild/issues/541))
 
     Conditional types in TypeScript take the form `A extends B ? C : D`. Parsing of conditional types in esbuild was incorrect. The `?` can only follow an `extends` clause but esbuild didn't require the `extends` clause, which potentially led to build failures or miscompilation. The parsing for this syntax has been fixed and should now match the behavior of the TypeScript compiler. This fix was contributed by [@rtsao](https://github.com/rtsao).
 
-* Ignore comments for character frequency analysis ([#543](https://github.com/evanw/esbuild/issues/543))
+* Ignore comments for character frequency analysis ([#543](https://github.com/aperturerobotics/esbuild/issues/543))
 
     Character frequency analysis is used to derive the order of minified names for better gzip compression. The idea is to prefer using the most-used characters in the non-symbol parts of the document (keywords, strings, etc.) over characters that are less-used or absent. This is a very slight win, and is only approximate based on the input text instead of the output text because otherwise it would require minifying twice.
 
     Right now comments are included in this character frequency histogram. This is not a correctness issue but it does mean that documents with the same code but different comments may be minified to different output files. This release fixes this difference by removing comments from the character frequency histogram.
 
-* Add an option to ignore tree-shaking annotations ([#458](https://github.com/evanw/esbuild/issues/458))
+* Add an option to ignore tree-shaking annotations ([#458](https://github.com/aperturerobotics/esbuild/issues/458))
 
     Tree shaking is the term the JavaScript community uses for dead code elimination, a common compiler optimization that automatically removes unreachable code. Since JavaScript is a dynamic language, identifying unused code is sometimes very difficult for a compiler, so the community has developed certain annotations to help tell compilers what code should be considered unused. Currently there two forms of tree-shaking annotations that esbuild supports: inline `/* @__PURE__ */` comments before function calls and the `sideEffects` field in `package.json`.
 
@@ -629,13 +629,13 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     Previously esbuild always joined the `baseUrl` path to the end of the current directory path. However, if the `baseUrl` was an absolute path, that would end up including the current directory path twice. This situation could arise internally in certain cases involving multiple `tsconfig.json` files and `extends` fields even if the `tsconfig.json` files themselves didn't have absolute paths. Absolute paths are now not modified and should work correctly.
 
-* Fix crash for modules that do `module.exports = null` ([#532](https://github.com/evanw/esbuild/issues/532))
+* Fix crash for modules that do `module.exports = null` ([#532](https://github.com/aperturerobotics/esbuild/issues/532))
 
     The code generated by esbuild would crash at run-time if a module overwrote `module.exports` with null or undefined. This has been fixed and no longer crashes.
 
 ## 0.8.9
 
-* Add support for the `mips64le` architecture ([#523](https://github.com/evanw/esbuild/issues/523))
+* Add support for the `mips64le` architecture ([#523](https://github.com/aperturerobotics/esbuild/issues/523))
 
     You should now be able to install esbuild on the `mips64le` architecture. This build target is second-tier as it's not covered by CI, but I tested it in an emulator and it appears to work at the moment.
 
@@ -653,7 +653,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
 ## 0.8.8
 
-* Add the `--banner` and `--footer` options ([#482](https://github.com/evanw/esbuild/issues/482))
+* Add the `--banner` and `--footer` options ([#482](https://github.com/aperturerobotics/esbuild/issues/482))
 
     You can now use the `--banner` and `--footer` options to insert code before and/or after the code that esbuild generates. This is usually used to insert a banner comment at the top of your bundle. However, you can also use this for other purposes such as wrapping your whole bundle in `--banner='try {'` and `--footer='} catch (e) { reportError(e) }'`. Note that since these strings can contain partial JavaScript syntax, esbuild will not do anything to ensure the result is valid JavaScript syntax. This feature was contributed by [@Gelio](https://github.com/Gelio).
 
@@ -691,11 +691,11 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
 ## 0.8.7
 
-* `--public-path` now affects code splitting chunk imports ([#524](https://github.com/evanw/esbuild/issues/524))
+* `--public-path` now affects code splitting chunk imports ([#524](https://github.com/aperturerobotics/esbuild/issues/524))
 
     The public path setting is a path prefix that bakes in the path where your code is hosted. It can currently be used with the `file` loader to turn the exported URLs into absolute URLs. Previously this path prefix didn't apply to the cross-chunk imports generated by code splitting. This was an oversight. The public path setting now also works for cross-chunk imports in this release.
 
-* Add `exports` for output files in metafile ([#487](https://github.com/evanw/esbuild/issues/487))
+* Add `exports` for output files in metafile ([#487](https://github.com/aperturerobotics/esbuild/issues/487))
 
     The metafile JSON data now contains a list of export names for all generated output files. This only affects builds that use the `esm` output format. It includes the names of all exports declared using the `export` keyword, including transitive exports that use the `export * from` syntax. If the entry point is in CommonJS format, there will be a single export called `default`.
 
@@ -744,11 +744,11 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     The parsing of TypeScript's `import name =` syntax should now match the official TypeScript parser. Previously esbuild incorrectly allowed any kind of expression after the equals sign. Now you can only use either a sequence of identifiers separated by periods or a call to the `require` function with a string literal.
 
-* Do not report warnings about `require()` inside `try` ([#512](https://github.com/evanw/esbuild/issues/512))
+* Do not report warnings about `require()` inside `try` ([#512](https://github.com/aperturerobotics/esbuild/issues/512))
 
     This release no longer reports warnings about un-bundled calls to `require()` if they are within a `try` block statement. Presumably the try/catch statement is there to handle the potential run-time error from the unbundled `require()` call failing, so the potential failure is expected and not worth warning about.
 
-* Add the `--keep-names` option ([#510](https://github.com/evanw/esbuild/issues/510))
+* Add the `--keep-names` option ([#510](https://github.com/aperturerobotics/esbuild/issues/510))
 
     In JavaScript the `name` property on functions and classes defaults to a nearby identifier in the source code. These syntax forms all set the `name` property of the function to `'fn'`:
 
@@ -765,7 +765,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     However, minification renames symbols to reduce code size. That changes value of the `name` property for many of these cases. This is usually fine because the `name` property is normally only used for debugging. However, some frameworks rely on the `name` property for registration and binding purposes. If this is the case, you can now enable `--keep-names` to preserve the original `name` values even in minified code.
 
-* Omit unused TypeScript import assignment aliases ([#474](https://github.com/evanw/esbuild/issues/474))
+* Omit unused TypeScript import assignment aliases ([#474](https://github.com/aperturerobotics/esbuild/issues/474))
 
     In TypeScript, `import x = y` is an alias statement that works for both values and types and can reach across files. Because esbuild doesn't replicate TypeScript's type system and because esbuild converts each file from TypeScript to JavaScript independently, it's not clear to esbuild if the alias refers to a value and should be kept as JavaScript or if the alias refers to a type and should be removed.
 
@@ -781,7 +781,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
 ## 0.8.5
 
-* Direct `eval()` now causes the module to be considered CommonJS ([#175](https://github.com/evanw/esbuild/pull/175))
+* Direct `eval()` now causes the module to be considered CommonJS ([#175](https://github.com/aperturerobotics/esbuild/pull/175))
 
     Code containing a direct call to `eval()` can potentially access any name in the current scope or in any parent scope. Therefore all symbols in all of these scopes must not be renamed or minified. This was already the case for all non-top-level symbols, but it accidentally wasn't the case for top-level symbols.
 
@@ -789,7 +789,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     Note that this change means that tree shaking is disabled for these files. There is rarely a reason to use direct `eval()` and it is almost always a mistake. You likely want to use a form of indirect eval such as `(0, eval)('code')` instead. That also has the benefit of not disabling symbol minification for that file.
 
-* Add a `text` property to output files in build results ([#496](https://github.com/evanw/esbuild/issues/496))
+* Add a `text` property to output files in build results ([#496](https://github.com/aperturerobotics/esbuild/issues/496))
 
     If you pass `write: false` to the JavaScript `build` API, the output files that would have been written to the file system are instead returned as an array of objects. Each object has a `Uint8Array` property called `contents` with the bytes of the file. It does not contain a string because the bytes of the file may not be valid UTF-8 (e.g. a PNG image) and it's not safe to decode output files as UTF-8 text in all cases.
 
@@ -812,11 +812,11 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     Code inside branching expressions where the branch is statically determined to never be taken is now marked as dead code. Previously this was only the case for statements, not expressions. This change means `false && require('pkg')` will no longer generate an error about `pkg` being missing even if it is indeed missing. This change affects the `||`, `&&`, `??`, and `?:` operators.
 
-* Fix metafile when importing CSS from JS ([#504](https://github.com/evanw/esbuild/pull/504))
+* Fix metafile when importing CSS from JS ([#504](https://github.com/aperturerobotics/esbuild/pull/504))
 
     This release fixes a bug where importing a CSS file from JavaScript caused esbuild to generate invalid JSON in the resulting metafile. It was only a problem if you were importing CSS from JS and enabled metafile output. This fix was contributed by [@nitsky](https://github.com/nitsky).
 
-* Fix downloads for Yarn 2 ([#505](https://github.com/evanw/esbuild/pull/505))
+* Fix downloads for Yarn 2 ([#505](https://github.com/aperturerobotics/esbuild/pull/505))
 
     The change related to Yarn 2 in the previous release had a bug that prevented downloads from succeeding when installing esbuild with Yarn 2. This fix was contributed by [@mathieudutour](https://github.com/mathieudutour).
 
@@ -854,7 +854,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     Previously it wasn't possible to use `paths` in `tsconfig.json` to remap paths starting with `/` on systems that considered that an absolute path (so not Windows). This is because absolute paths are handled before normal path resolution logic. Now this should work correctly.
 
-* Hack around lack of support for binary packages in Yarn 2 ([#467](https://github.com/evanw/esbuild/issues/467))
+* Hack around lack of support for binary packages in Yarn 2 ([#467](https://github.com/aperturerobotics/esbuild/issues/467))
 
     The Yarn 2 package manager is deliberately incompatible with binary modules because the Yarn 2 developers don't think they should be used. See [yarnpkg/berry#882](https://github.com/yarnpkg/berry/issues/882) for details. This means running esbuild with Yarn 2 currently doesn't work (Yarn 2 tries to load the esbuild binary as a JavaScript file).
 
@@ -864,17 +864,17 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
 ## 0.8.2
 
-* Fix the omission of `outbase` in the JavaScript API ([#471](https://github.com/evanw/esbuild/pull/471))
+* Fix the omission of `outbase` in the JavaScript API ([#471](https://github.com/aperturerobotics/esbuild/pull/471))
 
     The original PR for the `outbase` setting added it to the CLI and Go APIs but not the JavaScript API. This release adds it to the JavaScript API too.
 
-* Fix the TypeScript type definitions ([#499](https://github.com/evanw/esbuild/pull/499))
+* Fix the TypeScript type definitions ([#499](https://github.com/aperturerobotics/esbuild/pull/499))
 
     The newly-released `plugins` option in the TypeScript type definitions was incorrectly marked as non-optional. It is now optional. This fix was contributed by [@remorses](https://github.com/remorses).
 
 ## 0.8.1
 
-* The initial version of the plugin API ([#111](https://github.com/evanw/esbuild/pull/111))
+* The initial version of the plugin API ([#111](https://github.com/aperturerobotics/esbuild/pull/111))
 
     The plugin API lets you inject custom code inside esbuild's build process. You can write plugins in either JavaScript or Go. Right now you can add an "on resolve" callback to determine where import paths go and an "on load" callback to determine what the imported file contains. These two primitives are very powerful, especially in combination with each other.
 
@@ -923,7 +923,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
       "os"
       "strings"
 
-      "github.com/evanw/esbuild/pkg/api"
+      "github.com/aperturerobotics/esbuild/pkg/api"
     )
 
     var envPlugin = api.Plugin{
@@ -973,7 +973,7 @@ This changelog documents all esbuild versions published in the year 2020 (versio
 
     Comprehensive documentation for the plugin API is not yet available but is coming soon.
 
-* Add the `outbase` option ([#471](https://github.com/evanw/esbuild/pull/471))
+* Add the `outbase` option ([#471](https://github.com/aperturerobotics/esbuild/pull/471))
 
     Currently, esbuild uses the lowest common ancestor of the entrypoints to determine where to place each entrypoint's output file. This is an excellent default, but is not ideal in some situations. Take for example an app with a folder structure similar to Next.js, with js files at `pages/a/b/c.js` and `pages/a/b/d.js`. These two files correspond to the paths `/a/b/c` and `/a/b/d`. Ideally, esbuild would emit `out/a/b/c.js` and `out/a/b/d.js`. However, esbuild identifies `pages/a/b` as the lowest common ancestor and emits `out/c.js` and `out/d.js`. This release introduces an `--outbase` argument to the cli that allows the user to choose which path to base entrypoint output paths on. With this change, running esbuild with `--outbase=pages` results in the desired behavior. This change was contributed by [@nitsky](https://github.com/nitsky).
 
@@ -1039,7 +1039,7 @@ The breaking changes are as follows:
     * `Loaders` → `Loader`
     * `PureFunctions` → `Pure`
 
-* The global name parameter now takes a JavaScript expression ([#293](https://github.com/evanw/esbuild/issues/293))
+* The global name parameter now takes a JavaScript expression ([#293](https://github.com/aperturerobotics/esbuild/issues/293))
 
     The global name parameter determines the name of the global variable created for exports with the IIFE output format. For example, a global name of `abc` would generate the following IIFE:
 
@@ -1081,7 +1081,7 @@ The breaking changes are as follows:
 
 ## 0.7.22
 
-* Add `tsconfigRaw` to the transform API ([#483](https://github.com/evanw/esbuild/issues/483))
+* Add `tsconfigRaw` to the transform API ([#483](https://github.com/aperturerobotics/esbuild/issues/483))
 
     The `build` API uses access to the file system and doesn't run in the browser, but the `transform` API doesn't access the file system and can run in the browser. Previously you could only use the build API for certain scenarios involving TypeScript code and `tsconfig.json` files, such as configuring the `importsNotUsedAsValues` setting.
 
@@ -1106,7 +1106,7 @@ The breaking changes are as follows:
 
     Some popular browser-oriented libraries such as React use `process.env.NODE_ENV` even though this is not an API provided by the browser. While esbuild makes it easy to replace this at compile time using the `--define` feature, you must still do this manually and it's easy to forget. Now esbuild will warn you if you're bundling code containing `process.env.NODE_ENV` for the browser and you haven't configured it to be replaced by something.
 
-* Work around a bug in Safari for the run-time code ([#489](https://github.com/evanw/esbuild/issues/489))
+* Work around a bug in Safari for the run-time code ([#489](https://github.com/aperturerobotics/esbuild/issues/489))
 
     The `Object.getOwnPropertyDescriptor` function in Safari is broken for numeric properties. It incorrectly returns `undefined`, which crashes the run-time code esbuild uses to bind modules together. This release contains code to avoid a crash in this case.
 
@@ -1124,7 +1124,7 @@ The breaking changes are as follows:
 
 ## 0.7.20
 
-* Default to ASCII-only output ([#70](https://github.com/evanw/esbuild/issues/70), [#485](https://github.com/evanw/esbuild/issues/485))
+* Default to ASCII-only output ([#70](https://github.com/aperturerobotics/esbuild/issues/70), [#485](https://github.com/aperturerobotics/esbuild/issues/485))
 
     While esbuild's output is encoded using UTF-8 encoding, there are many other character encodings in the wild (e.g. [Windows-1250](https://en.wikipedia.org/wiki/Windows-1250)). You can explicitly mark the output files as UTF-8 by adding `<meta charset="utf-8">` to your HTML page or by including `charset=utf-8` in the `Content-Type` header sent by your server. This is probably a good idea regardless of the contents of esbuild's output since information being displayed to users is probably also encoded using UTF-8.
 
@@ -1152,7 +1152,7 @@ The breaking changes are as follows:
 
 ## 0.7.19
 
-* Add the `--avoid-tdz` option for large bundles in Safari ([#478](https://github.com/evanw/esbuild/issues/478))
+* Add the `--avoid-tdz` option for large bundles in Safari ([#478](https://github.com/aperturerobotics/esbuild/issues/478))
 
     This is a workaround for a performance issue with certain large JavaScript files in Safari.
 
@@ -1166,13 +1166,13 @@ The breaking changes are as follows:
 
 ## 0.7.18
 
-* Treat paths in CSS without a `./` or `../` prefix as relative ([#469](https://github.com/evanw/esbuild/issues/469))
+* Treat paths in CSS without a `./` or `../` prefix as relative ([#469](https://github.com/aperturerobotics/esbuild/issues/469))
 
     JavaScript paths starting with `./` or `../` are considered relative paths, while other JavaScript paths are considered package paths and are looked up in that package's `node_modules` directory. Currently `url()` paths in CSS files use that same logic, so `url(images/image.png)` checks for a file named `image.png` in the `image` package.
 
     This release changes this behavior. Now `url(images/image.png)` first checks for `./images/image.png`, then checks for a file named `image.png` in the `image` package. This behavior should match the behavior of Webpack's standard `css-loader` package.
 
-* Import non-enumerable properties from CommonJS modules ([#472](https://github.com/evanw/esbuild/issues/472))
+* Import non-enumerable properties from CommonJS modules ([#472](https://github.com/aperturerobotics/esbuild/issues/472))
 
     You can now import non-enumerable properties from CommonJS modules using an ES6 `import` statement. Here's an example of a situation where that might matter:
 
@@ -1204,7 +1204,7 @@ The breaking changes are as follows:
 
 ## 0.7.17
 
-* Add `--public-path=` for the `file` loader ([#459](https://github.com/evanw/esbuild/issues/459))
+* Add `--public-path=` for the `file` loader ([#459](https://github.com/aperturerobotics/esbuild/issues/459))
 
     The `file` loader causes importing a file to cause that file to be copied into the output directory. The name of the file is exported as the default export:
 
@@ -1218,7 +1218,7 @@ The breaking changes are as follows:
 
     The new public path setting configures the path prefix. So for example setting it to `https://www.example.com/v1` would change the output text for this example to `https://www.example.com/v1/image.L3XDQOAT.png`.
 
-* Add `--inject:` for polyfills ([#451](https://github.com/evanw/esbuild/issues/451))
+* Add `--inject:` for polyfills ([#451](https://github.com/aperturerobotics/esbuild/issues/451))
 
     It's now possible to replace global variables with imports from a file with `--inject:file.js`. Note that `file.js` must export symbols using the `export` keyword for this to work. This can be used to polyfill a global variable in code you don't control. For example:
 
@@ -1283,9 +1283,9 @@ The breaking changes are as follows:
 
     If you want to _conditionally_ import a file only if the export is actually used, you should mark the injected file as not having side effects by putting it in a package and adding `"sideEffects": false` in that package's `package.json` file. This setting is a [convention from Webpack](https://webpack.js.org/guides/tree-shaking/#mark-the-file-as-side-effect-free) that esbuild respects for any imported file, not just files used with `--inject`.
 
-* Add an ECMAScript module build for the browser ([#342](https://github.com/evanw/esbuild/pull/342))
+* Add an ECMAScript module build for the browser ([#342](https://github.com/aperturerobotics/esbuild/pull/342))
 
-    The [current browser API](https://github.com/evanw/esbuild/blob/cfaedaeeb35ae6e8b42921ab98ad98f75375d39f/docs/js-api.md#browser-api) lets you use esbuild in the browser via the `esbuild-wasm` package and a script tag:
+    The [current browser API](https://github.com/aperturerobotics/esbuild/blob/cfaedaeeb35ae6e8b42921ab98ad98f75375d39f/docs/js-api.md#browser-api) lets you use esbuild in the browser via the `esbuild-wasm` package and a script tag:
 
     ```html
     <script src="node_modules/esbuild-wasm/lib/browser.js"></script>
@@ -1315,11 +1315,11 @@ The breaking changes are as follows:
 
 ## 0.7.16
 
-* Fix backward slashes in source maps on Windows ([#463](https://github.com/evanw/esbuild/issues/463))
+* Fix backward slashes in source maps on Windows ([#463](https://github.com/aperturerobotics/esbuild/issues/463))
 
     The relative path fix in the previous release caused a regression where paths in source maps contained `\` instead of `/` on Windows. That is incorrect because source map paths are URLs, not file system paths. This release replaces `\` with `/` for consistency on Windows.
 
-* `module.require()` is now an alias for `require()` ([#455](https://github.com/evanw/esbuild/issues/455))
+* `module.require()` is now an alias for `require()` ([#455](https://github.com/aperturerobotics/esbuild/issues/455))
 
     Some packages such as [apollo-server](https://github.com/apollographql/apollo-server) use `module.require()` instead of `require()` with the intent of bypassing the bundler's `require` and calling the underlying function from `node` instead. Unfortunately that doesn't actually work because CommonJS module semantics means `module` is a variable local to that file's CommonJS closure instead of the host's `module` object.
 
@@ -1342,7 +1342,7 @@ The breaking changes are as follows:
 
     With this release, esbuild will now undo this shorthand syntax when using `--target=es2019` or below.
 
-* Better code generation for TypeScript files with type-only exports ([#447](https://github.com/evanw/esbuild/issues/447))
+* Better code generation for TypeScript files with type-only exports ([#447](https://github.com/aperturerobotics/esbuild/issues/447))
 
     Previously TypeScript files could have an unnecessary CommonJS wrapper in certain situations. The specific situation is bundling a file that re-exports something from another file without any exports. This happens because esbuild automatically considers a module to be a CommonJS module if there is no ES6 `import`/`export` syntax.
 
@@ -1363,11 +1363,11 @@ The breaking changes are as follows:
 
     With this release, this is now how cases like these are handled. The only case where this can't be done is when the import uses the `import * as` syntax. In that case a CommonJS wrapper is still necessary because the namespace cannot be rewritten to `undefined`.
 
-* Add support for `importsNotUsedAsValues` in TypeScript ([#448](https://github.com/evanw/esbuild/issues/448))
+* Add support for `importsNotUsedAsValues` in TypeScript ([#448](https://github.com/aperturerobotics/esbuild/issues/448))
 
     The `importsNotUsedAsValues` field in `tsconfig.json` is now respected. Setting it to `"preserve"` means esbuild will no longer remove unused imports in TypeScript files. This field was added in TypeScript 3.8.
 
-* Fix relative paths in generated source maps ([#444](https://github.com/evanw/esbuild/issues/444))
+* Fix relative paths in generated source maps ([#444](https://github.com/aperturerobotics/esbuild/issues/444))
 
     Currently paths in generated source map files don't necessarily correspond to real file system paths. They are really only meant to be human-readable when debugging in the browser.
 
@@ -1377,7 +1377,7 @@ The breaking changes are as follows:
 
 ## 0.7.14
 
-* Fix a bug with compound import statements ([#446](https://github.com/evanw/esbuild/issues/446))
+* Fix a bug with compound import statements ([#446](https://github.com/aperturerobotics/esbuild/issues/446))
 
     Import statements can simultaneously contain both a default import and a namespace import like this:
 
@@ -1403,7 +1403,7 @@ The breaking changes are as follows:
 
 ## 0.7.13
 
-* Fix `mainFields` in the JavaScript API ([#440](https://github.com/evanw/esbuild/issues/440) and [#441](https://github.com/evanw/esbuild/pull/441))
+* Fix `mainFields` in the JavaScript API ([#440](https://github.com/aperturerobotics/esbuild/issues/440) and [#441](https://github.com/aperturerobotics/esbuild/pull/441))
 
     It turns out the JavaScript bindings for the `mainFields` API option didn't work due to a copy/paste error. The fix for this was contributed by [@yoyo930021](https://github.com/yoyo930021).
 
@@ -1419,17 +1419,17 @@ The breaking changes are as follows:
 
 ## 0.7.11
 
-* Fix regression in 0.7.9 when minifying with code splitting ([#437](https://github.com/evanw/esbuild/issues/437))
+* Fix regression in 0.7.9 when minifying with code splitting ([#437](https://github.com/aperturerobotics/esbuild/issues/437))
 
-    In certain specific cases, bundling and minifying with code splitting active can cause a crash. This is a regression that was introduced in version 0.7.9 due to the fix for issue [#421](https://github.com/evanw/esbuild/issues/421). The crash has been fixed and this case now has test coverage.
+    In certain specific cases, bundling and minifying with code splitting active can cause a crash. This is a regression that was introduced in version 0.7.9 due to the fix for issue [#421](https://github.com/aperturerobotics/esbuild/issues/421). The crash has been fixed and this case now has test coverage.
 
 ## 0.7.10
 
-* Recover from bad `main` field in `package.json` ([#423](https://github.com/evanw/esbuild/issues/423))
+* Recover from bad `main` field in `package.json` ([#423](https://github.com/aperturerobotics/esbuild/issues/423))
 
     Some packages are published with invalid information in the `main` field of `package.json`. In that case, path resolution should fall back to searching for a file named `index.js` before giving up. This matters for the `simple-exiftool` package, for example.
 
-* Ignore TypeScript types on `catch` clause bindings ([435](https://github.com/evanw/esbuild/issues/435))
+* Ignore TypeScript types on `catch` clause bindings ([435](https://github.com/aperturerobotics/esbuild/issues/435))
 
     This fixes an issue where using a type annotation in a `catch` clause like this was a syntax error:
 
@@ -1453,7 +1453,7 @@ The breaking changes are as follows:
 
     Newer color syntax such as `rgba(255 0 0 / 50%)` will be converted to older syntax (in this case `rgba(255, 0, 0, 0.5)`) when the target browser doesn't support the newer syntax. For example, this happens when using `--target=chrome60`.
 
-* Fix an ordering issue with `import` statements ([#421](https://github.com/evanw/esbuild/issues/421))
+* Fix an ordering issue with `import` statements ([#421](https://github.com/aperturerobotics/esbuild/issues/421))
 
     Previously `import` statements that resolved to a CommonJS module turned into a call to `require()` inline. This was subtly incorrect when combined with tree shaking because it could sometimes cause imported modules to be reordered:
 
@@ -1533,7 +1533,7 @@ The breaking changes are as follows:
 
     This code will no longer prevent esbuild from processing the CSS file.
 
-* Treat `url(...)` in CSS files as an import ([#415](https://github.com/evanw/esbuild/issues/415))
+* Treat `url(...)` in CSS files as an import ([#415](https://github.com/aperturerobotics/esbuild/issues/415))
 
     When bundling, the `url(...)` syntax in CSS now tries to resolve the URL as a path using the bundler's built in path resolution logic. The following loaders can be used with this syntax: `text`, `base64`, `file`, `dataurl`, and `binary`.
 
@@ -1561,7 +1561,7 @@ The breaking changes are as follows:
 
     This release fixes a bug with the TypeScript transform for the `experimentalDecorators` setting. Previously the target object for all decorators was the class prototype, which was incorrect for static members. Static members now correctly use the class object itself as a target object.
 
-* Experimental support for CSS syntax ([#20](https://github.com/evanw/esbuild/issues/20))
+* Experimental support for CSS syntax ([#20](https://github.com/aperturerobotics/esbuild/issues/20))
 
     This release introduces the new `css` loader, enabled by default for `.css` files. It has the following features:
 
@@ -1581,11 +1581,11 @@ The breaking changes are as follows:
 
 ## 0.7.6
 
-* Fix JSON files with multiple entry points ([#413](https://github.com/evanw/esbuild/issues/413))
+* Fix JSON files with multiple entry points ([#413](https://github.com/aperturerobotics/esbuild/issues/413))
 
     This release fixes an issue where a single build operation containing multiple entry points and a shared JSON file which is used by more than one of those entry points can generate incorrect code for the JSON file when code splitting is disabled. The problem was not cloning the AST representing the JSON file before mutating it.
 
-* Silence warnings about `require.resolve()` for external paths ([#410](https://github.com/evanw/esbuild/issues/410))
+* Silence warnings about `require.resolve()` for external paths ([#410](https://github.com/aperturerobotics/esbuild/issues/410))
 
     Bundling code containing a call to node's [`require.resolve()`](https://nodejs.org/api/modules.html#modules_require_resolve_request_options) function causes a warning because it's an unsupported use of `require` that does not end up being bundled. For example, the following code will likely have unexpected behavior if `foo` ends up being bundled because the `require()` call is evaluated at bundle time but the `require.resolve()` call is evaluated at run time:
 
@@ -1604,7 +1604,7 @@ The breaking changes are as follows:
 
 ## 0.7.5
 
-* Fix an issue with automatic semicolon insertion after `let` ([#409](https://github.com/evanw/esbuild/issues/409))
+* Fix an issue with automatic semicolon insertion after `let` ([#409](https://github.com/aperturerobotics/esbuild/issues/409))
 
     The character sequence `let` can be considered either a keyword or an identifier depending on the context. A fix was previously landed in version 0.6.31 to consider `let` as an identifier in code like this:
 
@@ -1628,13 +1628,13 @@ The breaking changes are as follows:
 
 ## 0.7.4
 
-* Undo an earlier change to try to improve yarn compatibility ([#91](https://github.com/evanw/esbuild/pull/91) and [#407](https://github.com/evanw/esbuild/issues/407))
+* Undo an earlier change to try to improve yarn compatibility ([#91](https://github.com/aperturerobotics/esbuild/pull/91) and [#407](https://github.com/aperturerobotics/esbuild/issues/407))
 
-    The [yarn package manager](https://github.com/yarnpkg/yarn) behaves differently from npm and is not compatible in many ways. While npm is the only officially supported package manager for esbuild, people have contributed fixes for other package managers including yarn. One such fix is PR [#91](https://github.com/evanw/esbuild/pull/91) which makes sure the install script only runs once for a given installation directory.
+    The [yarn package manager](https://github.com/yarnpkg/yarn) behaves differently from npm and is not compatible in many ways. While npm is the only officially supported package manager for esbuild, people have contributed fixes for other package managers including yarn. One such fix is PR [#91](https://github.com/aperturerobotics/esbuild/pull/91) which makes sure the install script only runs once for a given installation directory.
 
-    I suspect this fix is actually incorrect, and is the cause of issue [#407](https://github.com/evanw/esbuild/issues/407). The problem seems to be that if you change the version of a package using `yarn add esbuild@version`, yarn doesn't clear out the installation directory before reinstalling the package so the package ends up with a mix of files from both package versions. This is not how npm behaves and seems like a pretty severe bug in yarn. I am reverting PR [#91](https://github.com/evanw/esbuild/pull/91) in an attempt to fix this issue.
+    I suspect this fix is actually incorrect, and is the cause of issue [#407](https://github.com/aperturerobotics/esbuild/issues/407). The problem seems to be that if you change the version of a package using `yarn add esbuild@version`, yarn doesn't clear out the installation directory before reinstalling the package so the package ends up with a mix of files from both package versions. This is not how npm behaves and seems like a pretty severe bug in yarn. I am reverting PR [#91](https://github.com/aperturerobotics/esbuild/pull/91) in an attempt to fix this issue.
 
-* Disable some warnings for code inside `node_modules` directories ([#395](https://github.com/evanw/esbuild/issues/395) and [#402](https://github.com/evanw/esbuild/issues/402))
+* Disable some warnings for code inside `node_modules` directories ([#395](https://github.com/aperturerobotics/esbuild/issues/395) and [#402](https://github.com/aperturerobotics/esbuild/issues/402))
 
     Using esbuild to build code with certain suspicious-looking syntax may generate a warning. These warnings don't fail the build (the build still succeeds) but they point out code that is very likely to not behave as intended. This has caught real bugs in the past:
 
@@ -1648,17 +1648,17 @@ The breaking changes are as follows:
 
 ## 0.7.3
 
-* Fix compile error due to missing `unix.SYS_IOCTL` in the latest `golang.org/x/sys` ([#396](https://github.com/evanw/esbuild/pull/396))
+* Fix compile error due to missing `unix.SYS_IOCTL` in the latest `golang.org/x/sys` ([#396](https://github.com/aperturerobotics/esbuild/pull/396))
 
     The `unix.SYS_IOCTL` export was apparently removed from `golang.org/x/sys` recently, which affected code in esbuild that gets the width of the terminal. This code now uses another method of getting the terminal width. The fix was contributed by [@akayj](https://github.com/akayj).
 
-* Validate that the versions of the host code and the binary executable match ([#407](https://github.com/evanw/esbuild/issues/407))
+* Validate that the versions of the host code and the binary executable match ([#407](https://github.com/aperturerobotics/esbuild/issues/407))
 
     After the install script runs, the version of the downloaded binary should always match the version of the package being installed. I have added some additional checks to verify this in case this invariant is ever broken. Breaking this invariant is very bad because it means the code being run is a mix of code from different package versions.
 
 ## 0.7.2
 
-* Transform arrow functions to function expressions with `--target=es5` ([#182](https://github.com/evanw/esbuild/issues/182) and [#297](https://github.com/evanw/esbuild/issues/297))
+* Transform arrow functions to function expressions with `--target=es5` ([#182](https://github.com/aperturerobotics/esbuild/issues/182) and [#297](https://github.com/aperturerobotics/esbuild/issues/297))
 
     Arrow functions are now transformed into function expressions when targeting `es5`. For example, this code:
 
@@ -1710,11 +1710,11 @@ The breaking changes are as follows:
 
     If you pass a non-JavaScript file such as a `.json` file to esbuild, it will by default generate `module.exports = {...}`. However, the `module` variable would incorrectly be minified when `--minify` is present. This issue has been fixed. This bug did not appear if `--format=cjs` was also present, only if no `--format` flag was specified.
 
-* Fix bugs with `async` functions ([#388](https://github.com/evanw/esbuild/issues/388))
+* Fix bugs with `async` functions ([#388](https://github.com/aperturerobotics/esbuild/issues/388))
 
     This release contains correctness fixes for `async` arrow functions with regard to the `arguments` variable. This affected `async` arrow functions nested inside `function` expressions or statements. Part of this fix was contributed by [@rtsao](https://github.com/rtsao).
 
-* Fix `export` clause when converting to CommonJS in transform API calls ([#393](https://github.com/evanw/esbuild/issues/393))
+* Fix `export` clause when converting to CommonJS in transform API calls ([#393](https://github.com/aperturerobotics/esbuild/issues/393))
 
     This release fixes some bugs with the recently-released feature in version 0.6.32 where you can specify an output format even when bundling is disabled. This is the case when using the transform API call, for example. Previously esbuild could generate code that crashed at run time while trying to export something incorrectly. This only affected code with top-level `export` statements. This has been fixed and these cases now have test coverage.
 
@@ -1726,11 +1726,11 @@ The breaking changes are as follows:
 
 ## 0.7.0
 
-* Mark output files with a hashbang as executable ([#364](https://github.com/evanw/esbuild/issues/364))
+* Mark output files with a hashbang as executable ([#364](https://github.com/aperturerobotics/esbuild/issues/364))
 
     Output files that start with a hashbang line such as `#!/usr/bin/env node` will now automatically be marked as executable. This lets you run them directly in a Unix-like shell without using the `node` command.
 
-* Use `"main"` for `require()` and `"module"` for `import` ([#363](https://github.com/evanw/esbuild/issues/363))
+* Use `"main"` for `require()` and `"module"` for `import` ([#363](https://github.com/aperturerobotics/esbuild/issues/363))
 
     The [node module resolution algorithm](https://nodejs.org/api/modules.html#modules_all_together) uses the `"main"` field in `package.json` to determine which file to load when a package is loaded with `require()`. Independent of node, most bundlers have converged on a convention where the `"module"` field takes precedence over the `"main"` field when present. Package authors can then use the `"module"` field to publish the same code in a different format for bundlers than for node.
 
@@ -1744,7 +1744,7 @@ The breaking changes are as follows:
 
     Keep in mind that the [`"browser"` field](https://github.com/defunctzombie/package-browser-field-spec) still takes precedence over both `"module"` and `"main"` when building for the browser platform.
 
-* Add the `--main-fields=` flag ([#363](https://github.com/evanw/esbuild/issues/363))
+* Add the `--main-fields=` flag ([#363](https://github.com/aperturerobotics/esbuild/issues/363))
 
     This adopts a configuration option from Webpack that lets you specify the order of "main fields" from `package.json` to use when determining the main module file for a package. Node only uses `main` but bundlers often respect other ones too such as `module` or `browser`. You can read more about this feature in the Webpack documentation [here](https://webpack.js.org/configuration/resolve/#resolvemainfields).
 
@@ -1752,7 +1752,7 @@ The breaking changes are as follows:
 
     The default order when targeting node is `main,module`. Note that this is different than Webpack, which defaults to `module,main`. This is also for compatibility because some packages incorrectly treat `module` as meaning "code for the browser" instead of what it actually means, which is "code for ES6 environments". Unfortunately this disables most tree shaking that would otherwise be possible because it means CommonJS modules will be chosen over ECMAScript modules. If choosing `module` over `main` is important to you (e.g. to potentially take advantage of improved tree shaking), this behavior can be disabled by explicitly specifying `--main-fields=module,main`.
 
-* Additional validation of arguments to JavaScript API calls ([#381](https://github.com/evanw/esbuild/issues/381))
+* Additional validation of arguments to JavaScript API calls ([#381](https://github.com/aperturerobotics/esbuild/issues/381))
 
     JavaScript API calls each take an object with many optional properties as an argument. Previously there was only minimal validation of the contents of that object. If you aren't using TypeScript, this can lead to confusing situations when the data on the object is invalid. Now there is some additional validation done to the shape of the object and the types of the properties.
 
@@ -1760,7 +1760,7 @@ The breaking changes are as follows:
 
 ## 0.6.34
 
-* Fix parsing of `type;` statements followed by an identifier in TypeScript ([#377](https://github.com/evanw/esbuild/pull/377))
+* Fix parsing of `type;` statements followed by an identifier in TypeScript ([#377](https://github.com/aperturerobotics/esbuild/pull/377))
 
     The following TypeScript code is now correctly parsed as two separate expression statements instead of one type declaration statement:
 
@@ -1771,7 +1771,7 @@ The breaking changes are as follows:
 
     This was contributed by [@rtsao](https://github.com/rtsao).
 
-* Fix `export {Type}` in TypeScript when bundling ([#379](https://github.com/evanw/esbuild/issues/379))
+* Fix `export {Type}` in TypeScript when bundling ([#379](https://github.com/aperturerobotics/esbuild/issues/379))
 
     In TypeScript, `export {Type}` is supposed to be silently removed by the compiler if `Type` does not refer to a value declared locally in the file. Previously this behavior was incompletely implemented. The statement itself was removed but the export record was not, so later stages of the pipeline could sometimes add the export statement back. This release removes the export record as well as the statement so it should stay removed in all cases.
 
@@ -1779,27 +1779,27 @@ The breaking changes are as follows:
 
     It is now an error to export an identifier using `export {foo}` if `foo` is not declared locally in the same file. This error matches the error that would happen at run-time if the code were to be evaluated in a JavaScript environment that supports ES6 module syntax. This is only an error in JavaScript. In TypeScript, the missing identifier is silently removed instead since it's assumed to be a type name.
 
-* Handle source maps with out-of-order mappings ([#378](https://github.com/evanw/esbuild/issues/378))
+* Handle source maps with out-of-order mappings ([#378](https://github.com/aperturerobotics/esbuild/issues/378))
 
     Almost all tools that generate source maps write out the mappings in increasing order by generated position since the mappings are generated along with the output. However, some tools can apparently generate source maps with out-of-order mappings. It's impossible for generated line numbers to be out of order due to the way the source map format works, but it's possible for generated column numbers to be out of order. This release fixes this issue by sorting the mappings by generated position after parsing if necessary.
 
 ## 0.6.33
 
-* Fix precedence of tagged template expressions ([#372](https://github.com/evanw/esbuild/issues/372))
+* Fix precedence of tagged template expressions ([#372](https://github.com/aperturerobotics/esbuild/issues/372))
 
     Previously `` await tag`text` `` and `` new tag`text` `` were incorrectly parsed as `` (await tag)`text` `` and `` (new tag)`text` ``. They are now correctly parsed as `` await (tag`text`) `` and `` new (tag`text`) `` instead.
 
-* Fix invalid syntax when lowering `super` inside `async` to `es2016` or earlier ([#375](https://github.com/evanw/esbuild/issues/375))
+* Fix invalid syntax when lowering `super` inside `async` to `es2016` or earlier ([#375](https://github.com/aperturerobotics/esbuild/issues/375))
 
     This release fixes a bug where using `super.prop` inside an `async` function with `--target=es2016` or earlier generated code that contained a syntax error. This was because `async` functions are converted to generator functions inside a wrapper function in this case, and `super` is not available inside the wrapper function. The fix is to move the reference to `super` outside of the wrapper function.
 
-* Fix duplicate definition of `module` when targeting CommonJS ([#370](https://github.com/evanw/esbuild/issues/370))
+* Fix duplicate definition of `module` when targeting CommonJS ([#370](https://github.com/aperturerobotics/esbuild/issues/370))
 
     The bundler didn't properly reserve the identifier `module` when using `--format=cjs`. This meant automatically-generated variables named `module` could potentially not be renamed to avoid collisions with the CommonJS `module` variable. It was possible to get into this situation when importing a module named `module`, such as the [node built-in module by that name](https://nodejs.org/api/module.html). This name is now marked as reserved when bundling to CommonJS, so automatically-generated variables named `module` will now be renamed to `module2` to avoid collisions.
 
 ## 0.6.32
 
-* Allow `--format` when bundling is disabled ([#109](https://github.com/evanw/esbuild/issues/109))
+* Allow `--format` when bundling is disabled ([#109](https://github.com/aperturerobotics/esbuild/issues/109))
 
     This change means esbuild can be used to convert ES6 import and export syntax to CommonJS syntax. The following code:
 
@@ -1845,7 +1845,7 @@ The breaking changes are as follows:
 
     Note that converting CommonJS `require()` calls to ES6 imports is not currently supported. Code containing a reference to `require` in these situations will generate a warning.
 
-* Change the flag for boolean and string minification ([#371](https://github.com/evanw/esbuild/issues/371))
+* Change the flag for boolean and string minification ([#371](https://github.com/aperturerobotics/esbuild/issues/371))
 
     Previously setting the `--minify-whitespace` flag shortened `true` and `false` to `!0` and `!1` and shortened string literals containing many newlines by writing them as template literals instead. These shortening operations have been changed to the `--minify-syntax` flag instead. There is no change in behavior for the `--minify` flag because that flag already implies both `--minify-whitespace` and `--minify-syntax`.
 
@@ -1872,7 +1872,7 @@ The breaking changes are as follows:
 
 ## 0.6.31
 
-* Invalid source maps are no longer an error ([#367](https://github.com/evanw/esbuild/issues/367))
+* Invalid source maps are no longer an error ([#367](https://github.com/aperturerobotics/esbuild/issues/367))
 
     Previously esbuild would fail the build with an error if it encountered a source map that failed validation according to [the specification](https://sourcemaps.info/spec.html). Now invalid source maps will be validated with an error-tolerant validator that will either silently ignore errors or generate a warning, but will never fail the build.
 
@@ -1981,7 +1981,7 @@ The breaking changes are as follows:
 
 ## 0.6.30
 
-* Fix optional call of `super` property ([#362](https://github.com/evanw/esbuild/issues/362))
+* Fix optional call of `super` property ([#362](https://github.com/aperturerobotics/esbuild/issues/362))
 
     This fixes a bug where lowering the code `super.foo?.()` was incorrectly transformed to this:
 
@@ -2024,11 +2024,11 @@ The breaking changes are as follows:
     }
     ```
 
-* Allow getters and setters in ES5 ([#356](https://github.com/evanw/esbuild/issues/356))
+* Allow getters and setters in ES5 ([#356](https://github.com/aperturerobotics/esbuild/issues/356))
 
     This was an oversight. I incorrectly thought getters and setters were added in ES6, not in ES5. This release allows getter and setter method syntax even when `--target=es5`.
 
-* Fix a Windows-only regression with missing directory errors ([#359](https://github.com/evanw/esbuild/issues/359))
+* Fix a Windows-only regression with missing directory errors ([#359](https://github.com/aperturerobotics/esbuild/issues/359))
 
     Various Go file system APIs return `ENOTDIR` for missing file system entries on Windows instead of `ENOENT` like they do on other platforms. This interfered with code added in the previous release that makes unexpected file system errors no longer silent. `ENOTDIR` is usually an unexpected error because it's supposed to happen when the file system entry is present but just unexpectedly a file instead of a directory. This release changes `ENOTDIR` to `ENOENT` in certain cases so that these Windows-only errors are no longer treated as unexpected errors.
 
@@ -2042,15 +2042,15 @@ The breaking changes are as follows:
 
 ## 0.6.28
 
-* Avoid running out of file handles when ulimit is low ([#348](https://github.com/evanw/esbuild/issues/348))
+* Avoid running out of file handles when ulimit is low ([#348](https://github.com/aperturerobotics/esbuild/issues/348))
 
     When esbuild uses aggressive concurrency, it can sometimes simultaneously use more file handles than allowed by the system. This can be a problem when the limit is low (e.g. using `ulimit -n 32`). In this release, esbuild now limits itself to using a maximum of 32 file operations simultaneously (in practice this may use up to 64 file handles since some file operations need two handles). This limit was chosen to be low enough to not cause issues with normal ulimit values but high enough to not impact benchmark times.
 
-* Unexpected file system errors are no longer silent ([#348](https://github.com/evanw/esbuild/issues/348))
+* Unexpected file system errors are no longer silent ([#348](https://github.com/aperturerobotics/esbuild/issues/348))
 
     All file system errors were previously treated the same; any error meant the file or directory was considered to not exist. This was problematic when the process ran out of available file handles because it meant esbuild could ignore files that do actually exist if file handles are exhausted. Then esbuild could potentially generate a different output instead of failing with an error. Now if esbuild gets into this situation, it should report unexpected file system errors and fail to build instead of continuing to build and potentially producing incorrect output.
 
-* Install script tries `npm install` before a direct download ([#347](https://github.com/evanw/esbuild/issues/347))
+* Install script tries `npm install` before a direct download ([#347](https://github.com/aperturerobotics/esbuild/issues/347))
 
     The `esbuild` package has a post-install script that downloads the native binary for the current platform over HTTP. Some people have configured their environments such that HTTP requests to npmjs.org will hang, and configured npm to use a proxy for HTTP requests instead. In this case, esbuild's install script will still work as long as `npm install` works because the HTTP request will eventually time out, at which point the install script will run `npm install` as a fallback. The timeout is of course undesirable.
 
@@ -2058,13 +2058,13 @@ The breaking changes are as follows:
 
 ## 0.6.27
 
-* Add parentheses when calling `require()` inside `new` ([#339](https://github.com/evanw/esbuild/issues/339))
+* Add parentheses when calling `require()` inside `new` ([#339](https://github.com/aperturerobotics/esbuild/issues/339))
 
     This release fixes an issue where `new (require('path')).ctor()` became `new require_path().ctor()` after bundling, which caused `require_path()` to be invoked as the constructor instead of `ctor()`. With this fix the code `new (require_path()).ctor()` is generated instead, which correctly invokes `ctor()` as the constructor. This was contributed by [@rtsao](https://github.com/rtsao).
 
 ## 0.6.26
 
-* Fix syntax error when minifying and bundling CommonJS to ES5 ([#335](https://github.com/evanw/esbuild/issues/335))
+* Fix syntax error when minifying and bundling CommonJS to ES5 ([#335](https://github.com/aperturerobotics/esbuild/issues/335))
 
     With the flags `--minify --bundle --target=es5`, esbuild had a bug where the arrow function for the closure used to wrap CommonJS modules was not correctly printed as an ES5 function expression, causing a syntax error. This bug has been fixed.
 
@@ -2124,11 +2124,11 @@ The breaking changes are as follows:
 
 ## 0.6.23
 
-* Add an error message for a missing `--tsconfig` file ([#330](https://github.com/evanw/esbuild/issues/330))
+* Add an error message for a missing `--tsconfig` file ([#330](https://github.com/aperturerobotics/esbuild/issues/330))
 
     The `--tsconfig` flag that was added in version 0.6.1 didn't report an error if the provided file doesn't actually exist. This release makes doing this an error that will fail the build.
 
-* Avoid generating the minified label name `if` ([#332](https://github.com/evanw/esbuild/issues/332))
+* Avoid generating the minified label name `if` ([#332](https://github.com/aperturerobotics/esbuild/issues/332))
 
     The recent minification changes in 0.6.20 introduced a regression where input files containing 333 or more label statements resulted in a label being assigned the minified name `if`, which is a JavaScript keyword. This is the first JavaScript keyword in the minified name sequence that esbuild uses for label names: `a b c ... aa ba ca ...`. The regression has been fixed and there is now test coverage for this case.
 
@@ -2138,7 +2138,7 @@ The breaking changes are as follows:
 
     In most terminals, printing the bell character (ASCII code 7) will trigger a sound. The macOS terminal will also flash the screen if sound is muted. This is annoying, and can happen when dumping the output of esbuild to the terminal if the input contains a bell character. Now esbuild will always escape bell characters in the output to avoid this problem.
 
-* CommonJS modules now export properties of prototype ([#326](https://github.com/evanw/esbuild/issues/326))
+* CommonJS modules now export properties of prototype ([#326](https://github.com/aperturerobotics/esbuild/issues/326))
 
     This change is for compatibility with Webpack. You can now assign an object with a custom prototype to `module.exports` and esbuild will consider all enumerable properties on the prototype as exports. This behavior is necessary to correctly bundle the [paper.js](https://github.com/paperjs/paper.js) library, for example.
 
@@ -2152,7 +2152,7 @@ The breaking changes are as follows:
 
     Initial testing shows that upgrading Go reduces the esbuild binary size on macOS from 7.4mb to 5.3mb, which is a 30% smaller binary! I assume the binary size savings are similar for other platforms. Run-time performance on the esbuild benchmarks seems consistent with previous releases.
 
-* Lower non-tag template literals to ES5 ([#297](https://github.com/evanw/esbuild/issues/297))
+* Lower non-tag template literals to ES5 ([#297](https://github.com/aperturerobotics/esbuild/issues/297))
 
     You can now use non-tag template literals such as `` `abc` `` and `` `a${b}c` `` with `--target=es5` and esbuild will convert them to string addition such as `"abc"` and `"a" + b + "c"` instead of reporting an error.
 
@@ -2166,7 +2166,7 @@ The breaking changes are as follows:
 
 ## 0.6.20
 
-* Symbols are now renamed separately per chunk ([#16](https://github.com/evanw/esbuild/issues/16))
+* Symbols are now renamed separately per chunk ([#16](https://github.com/aperturerobotics/esbuild/issues/16))
 
     Previously, bundling with code splitting assigned minified names using a single frequency distribution calculated across all chunks. This meant that typical code changes in one chunk would often cause the contents of all chunks to change, which negated some of the benefits of the browser cache.
 
@@ -2174,17 +2174,17 @@ The breaking changes are as follows:
 
 ## 0.6.19
 
-* Reduce memory usage for large builds by 30-40% ([#304](https://github.com/evanw/esbuild/issues/304))
+* Reduce memory usage for large builds by 30-40% ([#304](https://github.com/aperturerobotics/esbuild/issues/304))
 
     This release reduces memory usage. These specific percentages are likely only accurate for builds with a large number of files. Memory is reduced by ~30% for all builds by avoiding unnecessary per-file symbol maps, and is reduced by an additional ~10% for builds with source maps by preallocating some large arrays relating to source map output.
 
-* Replace `.js` and `.jsx` with `.ts` or `.tsx` when resolving ([#118](https://github.com/evanw/esbuild/issues/118))
+* Replace `.js` and `.jsx` with `.ts` or `.tsx` when resolving ([#118](https://github.com/aperturerobotics/esbuild/issues/118))
 
     This adds an import path resolution behavior that's specific to the TypeScript compiler where you can use an import path that ends in `.js` or `.jsx` when the correct import path actually ends in `.ts` or `.tsx` instead. See the discussion here for more historical context: https://github.com/microsoft/TypeScript/issues/4595.
 
 ## 0.6.18
 
-* Install script falls back to `npm install` ([#319](https://github.com/evanw/esbuild/issues/319))
+* Install script falls back to `npm install` ([#319](https://github.com/aperturerobotics/esbuild/issues/319))
 
     The `esbuild` package has a post-install script that downloads the esbuild binary. However, this will fail if `registry.npmjs.org` (or the configured custom npm registry) is inaccessible.
 
@@ -2202,7 +2202,7 @@ The breaking changes are as follows:
 
     The cache holds a maximum of 5 entries and purges least-recently-used entries above that limit.
 
-* Omit `export default` of local type names ([#316](https://github.com/evanw/esbuild/issues/316))
+* Omit `export default` of local type names ([#316](https://github.com/aperturerobotics/esbuild/issues/316))
 
     Normally the `export default` syntax takes a value expression to export. However, TypeScript has a special case for `export default <identifier>` where the identifier is allowed to be a type expression instead of a value expression. In that case, the type expression should not be emitted in the resulting bundle. This release improves support for this case by omitting the export when the identifier matches a local type name.
 
@@ -2212,37 +2212,37 @@ The breaking changes are as follows:
 
     Console output on Windows now uses color instead of being monochrome. This should make log messages easier to read.
 
-* Parenthesize destructuring assignment in arrow function expressions ([#313](https://github.com/evanw/esbuild/issues/313))
+* Parenthesize destructuring assignment in arrow function expressions ([#313](https://github.com/aperturerobotics/esbuild/issues/313))
 
     This fixes a bug where `() => ({} = {})` was incorrectly printed as `() => ({}) = {}`, which is a syntax error. This case is now printed correctly.
 
 ## 0.6.15
 
-* Support symlinks with absolute paths in `node_modules` ([#310](https://github.com/evanw/esbuild/issues/310))
+* Support symlinks with absolute paths in `node_modules` ([#310](https://github.com/aperturerobotics/esbuild/issues/310))
 
     Previously esbuild only supported symlinks with relative paths, not absolute paths. Adding support for absolute paths in symlinks fixes issues with esbuild and [pnpm](https://github.com/pnpm/pnpm) on Windows.
 
-* Preserve leading comments inside `import()` expressions ([#309](https://github.com/evanw/esbuild/issues/309))
+* Preserve leading comments inside `import()` expressions ([#309](https://github.com/aperturerobotics/esbuild/issues/309))
 
     This makes it possible to use esbuild as a faster TypeScript-to-JavaScript frontend for Webpack, which has special [magic comments](https://webpack.js.org/api/module-methods/#magic-comments) inside `import()` expressions that affect Webpack's behavior.
 
-* Fix crash for source files beginning with `\r\n` when using source maps ([#311](https://github.com/evanw/esbuild/issues/311))
+* Fix crash for source files beginning with `\r\n` when using source maps ([#311](https://github.com/aperturerobotics/esbuild/issues/311))
 
     The source map changes in version 0.6.13 introduced a regression that caused source files beginning with `\r\n` to crash esbuild when source map generation was enabled. This was not caught during testing both because not many source files begin with a newline and not many source files have Windows-style line endings in them. This regression has been fixed and Windows-style line endings now have test coverage.
 
 ## 0.6.14
 
-* Add support for parsing top-level await ([#253](https://github.com/evanw/esbuild/issues/253))
+* Add support for parsing top-level await ([#253](https://github.com/aperturerobotics/esbuild/issues/253))
 
     It seems appropriate for esbuild to support top-level await syntax now that [node is supporting top-level await syntax by default](https://github.com/nodejs/node/issues/34551) (it's the first widely-used platform to do so). This syntax can now be parsed by esbuild and is always passed through untransformed. It's only allowed when the target is `esnext` because the proposal is still in stage 3. It also cannot be used when bundling. Adding support for top-level await to the bundler is complicated since it causes imports to be asynchronous, which has far-reaching implications. This change is mainly for people using esbuild as a library to transform TypeScript into JavaScript one file at a time.
 
 ## 0.6.13
 
-* Exclude non-JavaScript files from source maps ([#304](https://github.com/evanw/esbuild/issues/304))
+* Exclude non-JavaScript files from source maps ([#304](https://github.com/aperturerobotics/esbuild/issues/304))
 
     Previously all input files were eligible for source map generation, even binary files included using loaders such as `dataurl`. This was not intentional. Doing this doesn't serve a purpose and can massively bloat the resulting source maps. Now all files are excluded except those loaded by the `js`, `jsx`, `ts`, and `tsx` loaders.
 
-* Fix incorrect source maps with code splitting ([#303](https://github.com/evanw/esbuild/issues/303))
+* Fix incorrect source maps with code splitting ([#303](https://github.com/aperturerobotics/esbuild/issues/303))
 
     Source maps were completely incorrect when code splitting was enabled for chunk files that imported other chunk files. The source map offsets were not being adjusted past the automatically-generated cross-chunk import statements. This has been fixed.
 
@@ -2256,7 +2256,7 @@ The breaking changes are as follows:
 
 ## 0.6.12
 
-* Fix bugs with cross-chunk assignment handling ([#302](https://github.com/evanw/esbuild/issues/302))
+* Fix bugs with cross-chunk assignment handling ([#302](https://github.com/aperturerobotics/esbuild/issues/302))
 
     The code splitting process may end up moving the declaration of a file-local variable into a separate chunk from an assignment to that variable. However, it's not possible to assign to a variable in another chunk because assigning to an import is not allowed in ES6. To avoid generating invalid code, esbuild runs an additional pass after code splitting to force all code involved in cross-chunk assignments into the same chunk.
 
@@ -2264,7 +2264,7 @@ The breaking changes are as follows:
 
 ## 0.6.11
 
-* Code splitting chunks now use content hashes ([#16](https://github.com/evanw/esbuild/issues/16))
+* Code splitting chunks now use content hashes ([#16](https://github.com/aperturerobotics/esbuild/issues/16))
 
     Code that is shared between multiple entry points is separated out into "chunk" files when code splitting is enabled. These files are named `chunk.HASH.js` where `HASH` is a string of characters derived from a hash (e.g. `chunk.iJkFSV6U.js`).
 
@@ -2278,7 +2278,7 @@ The breaking changes are as follows:
 
     Care was taken to still parallelize as much as possible despite parts of the code having to block. Each input file in a chunk is still printed to a string fully in parallel. Waiting was only introduced in the chunk assembly stage where input file strings are joined together. In practice, this change doesn't appear to have slowed down esbuild by a noticeable amount.
 
-* Fix an off-by-one error with source map generation ([#289](https://github.com/evanw/esbuild/issues/289))
+* Fix an off-by-one error with source map generation ([#289](https://github.com/aperturerobotics/esbuild/issues/289))
 
     The nested source map support added in version 0.6.5 contained a bug. Input files that were included in the bundle but that didn't themselves contain any generated code caused the source index to shift by one, throwing off the source names of all files after it. This could happen with files consisting only of re-export statements (e.g. `export {name} from 'path'`). This bug has been fixed and this specific scenario now has test coverage.
 
@@ -2300,51 +2300,51 @@ The breaking changes are as follows:
 
     Syntax trees with millions of sequential binary operators nested inside each other can cause the parser to stack overflow because it uses a recursive visitor pattern, so each binary operator added an entry to the call stack. Now code like this no longer triggers a stack overflow because the visitor uses the heap instead of the stack in this case. This is unlikely to matter in real-world code but can show up in certain artificial test cases, especially when `--minify-syntax` is enabled.
 
-* Resolve implicitly-named `tsconfig.json` base files ([#279](https://github.com/evanw/esbuild/issues/279))
+* Resolve implicitly-named `tsconfig.json` base files ([#279](https://github.com/aperturerobotics/esbuild/issues/279))
 
     The official TypeScript compiler lets you specify a package path as the `extends` property of a `tsconfig.json` file. The base file is then searched for in the relevant `node_modules` directory. Previously the package path had to end with the name of the base file. Now you can additionally omit the name of the base file if the file name is `tsconfig.json`. This more closely matches the behavior of the official TypeScript compiler.
 
-* Support for 32-bit Windows systems ([#285](https://github.com/evanw/esbuild/issues/285))
+* Support for 32-bit Windows systems ([#285](https://github.com/aperturerobotics/esbuild/issues/285))
 
     You can now install the esbuild npm package on 32-bit Windows systems.
 
 ## 0.6.8
 
-* Attempt to support the taobao.org registry ([#291](https://github.com/evanw/esbuild/issues/291))
+* Attempt to support the taobao.org registry ([#291](https://github.com/aperturerobotics/esbuild/issues/291))
 
     This release attempts to add support for the registry at https://registry.npm.taobao.org, which uses a different URL structure than the official npm registry. Also, the install script will now fall back to the official npm registry if installing with the configured custom registry fails.
 
 ## 0.6.7
 
-* Custom registry can now have a path ([#286](https://github.com/evanw/esbuild/issues/286))
+* Custom registry can now have a path ([#286](https://github.com/aperturerobotics/esbuild/issues/286))
 
     This adds support for custom registries hosted at a path other than `/`. Previously the registry had to be hosted at the domain level, like npm itself.
 
-* Nested source maps use relative paths ([#289](https://github.com/evanw/esbuild/issues/289))
+* Nested source maps use relative paths ([#289](https://github.com/aperturerobotics/esbuild/issues/289))
 
     The original paths in nested source maps are now modified to be relative to the directory containing the source map. This means source maps from packages inside `node_modules` will stay inside `node_modules` in browser developer tools instead of appearing at the root of the virtual file system where they might collide with the original paths of files in other packages.
 
-* Support for 32-bit Linux systems ([#285](https://github.com/evanw/esbuild/issues/285))
+* Support for 32-bit Linux systems ([#285](https://github.com/aperturerobotics/esbuild/issues/285))
 
     You can now install the esbuild npm package on 32-bit Linux systems.
 
 ## 0.6.6
 
-* Fix minification bug with `this` values for function calls ([#282](https://github.com/evanw/esbuild/issues/282))
+* Fix minification bug with `this` values for function calls ([#282](https://github.com/aperturerobotics/esbuild/issues/282))
 
     Previously `(0, this.fn)()` was incorrectly minified to `this.fn()`, which changes the value of `this` used for the function call. Now syntax like this is preserved during minification.
 
-* Install script now respects the npm registry setting ([#286](https://github.com/evanw/esbuild/issues/286))
+* Install script now respects the npm registry setting ([#286](https://github.com/aperturerobotics/esbuild/issues/286))
 
     If you have configured npm to use a custom registry using `npm config set registry <url>` or by installing esbuild using `npm install --registry=<url> ...`, this custom registry URL should now be respected by the esbuild install script.
 
     Specifically, the install script now uses the URL from the `npm_config_registry` environment variable if present instead of the default registry URL `https://registry.npmjs.org/`. Note that the URL must have both a protocol and a host name.
 
-* Fixed ordering between `node_modules` and a force-overridden `tsconfig.json` ([#278](https://github.com/evanw/esbuild/issues/278))
+* Fixed ordering between `node_modules` and a force-overridden `tsconfig.json` ([#278](https://github.com/aperturerobotics/esbuild/issues/278))
 
     When the `tsconfig.json` settings have been force-overridden using the new `--tsconfig` flag, the path resolution behavior behaved subtly differently than if esbuild naturally discovers the `tsconfig.json` file without the flag. The difference caused package paths present in a `node_modules` directory to incorrectly take precedence over custom path aliases configured in `tsconfig.json`. The ordering has been corrected such that custom path aliases always take place over `node_modules`.
 
-* Add the `--out-extension` flag for custom output extensions ([#281](https://github.com/evanw/esbuild/issues/281))
+* Add the `--out-extension` flag for custom output extensions ([#281](https://github.com/aperturerobotics/esbuild/issues/281))
 
     Previously esbuild could only output files ending in `.js`. Now you can override this to another extension by passing something like `--out-extension:.js=.mjs`. This allows generating output files with the node-specific `.cjs` and `.mjs` extensions without having to use a separate command to rename them afterwards.
 
@@ -2354,29 +2354,29 @@ The breaking changes are as follows:
 
     The wrapper for immediately-invoked function expressions is hard-coded to an arrow function and was not updated when the ES5 target was added. This meant that bundling ES5 code would generate a bundle what wasn't ES5-compatible. Doing this now uses a function expression instead.
 
-* Add support for nested source maps ([#211](https://github.com/evanw/esbuild/issues/211))
+* Add support for nested source maps ([#211](https://github.com/aperturerobotics/esbuild/issues/211))
 
     Source map comments of the form `//# sourceMappingURL=...` inside input files are now respected. This means you can bundle files with source maps and esbuild will generate a source map that maps all the way back to the original files instead of to the intermediate file with the source map.
 
 ## 0.6.4
 
-* Allow extending `tsconfig.json` paths inside packages ([#269](https://github.com/evanw/esbuild/issues/269))
+* Allow extending `tsconfig.json` paths inside packages ([#269](https://github.com/aperturerobotics/esbuild/issues/269))
 
     Previously the `extends` field in `tsconfig.json` only worked with relative paths (paths starting with `./` or `../`). Now this field can also take a package path, which will be resolved by looking for the package in the `node_modules` directory.
 
-* Install script now avoids the `npm` command ([#274](https://github.com/evanw/esbuild/issues/274))
+* Install script now avoids the `npm` command ([#274](https://github.com/aperturerobotics/esbuild/issues/274))
 
     The install script now downloads the binary directly from npmjs.org instead of using the `npm` command to install the package. This should be more compatible with unusual node environments (e.g. having multiple old copies of npm installed).
 
-* Fix a code splitting bug with re-exported symbols ([#273](https://github.com/evanw/esbuild/issues/273))
+* Fix a code splitting bug with re-exported symbols ([#273](https://github.com/aperturerobotics/esbuild/issues/273))
 
     Re-exporting a symbol in an entry point didn't correctly track the cross-chunk dependency, which caused the output file to be missing a required import. This bug has been fixed.
 
-* Fix code splitting if a dynamic entry point is doubled as a normal entry point ([#272](https://github.com/evanw/esbuild/issues/272))
+* Fix code splitting if a dynamic entry point is doubled as a normal entry point ([#272](https://github.com/aperturerobotics/esbuild/issues/272))
 
     Using a dynamic `import()` expression automatically adds the imported path as an entry point. However, manually adding the imported path to the bundler entry point list resulted in a build failure. This case is now handled.
 
-* Fix dynamic imports from a parent directory ([#264](https://github.com/evanw/esbuild/issues/264))
+* Fix dynamic imports from a parent directory ([#264](https://github.com/aperturerobotics/esbuild/issues/264))
 
     The nested output directory feature interacted badly with the code splitting feature when an entry point contained a dynamic `import()` to a file from a directory that was a parent directory to all entry points. This caused esbuild to generate output paths starting with `../` which stepped outside of the output directory.
 
@@ -2384,11 +2384,11 @@ The breaking changes are as follows:
 
 ## 0.6.3
 
-* Fix `/* @__PURE__ */` IIFEs at start of statement ([#258](https://github.com/evanw/esbuild/issues/258))
+* Fix `/* @__PURE__ */` IIFEs at start of statement ([#258](https://github.com/aperturerobotics/esbuild/issues/258))
 
     The introduction of support for `/* @__PURE__ */` comments in an earlier release introduced a bug where parentheses were no longer inserted if a statement started with a function expression that was immediately invoked. This bug has been fixed and parentheses are now inserted correctly.
 
-* Add support for `@jsx` and `@jsxFrag` comments ([#138](https://github.com/evanw/esbuild/issues/138))
+* Add support for `@jsx` and `@jsxFrag` comments ([#138](https://github.com/aperturerobotics/esbuild/issues/138))
 
     You can now override the JSX factory and fragment values on a per-file basis using comments:
 
@@ -2412,7 +2412,7 @@ The breaking changes are as follows:
 
 ## 0.6.2
 
-* Fix code splitting bug with re-export cycles ([#251](https://github.com/evanw/esbuild/issues/251))
+* Fix code splitting bug with re-export cycles ([#251](https://github.com/aperturerobotics/esbuild/issues/251))
 
     Two files that both re-export each other could cause invalid code to be generated when code splitting is enabled. The specific failure was an export statement without a matching import statement from the shared code chunk. This bug has been fixed.
 
@@ -2432,7 +2432,7 @@ The breaking changes are as follows:
 
 ## 0.6.1
 
-* Allow bundling with stdin as input ([#212](https://github.com/evanw/esbuild/issues/212))
+* Allow bundling with stdin as input ([#212](https://github.com/aperturerobotics/esbuild/issues/212))
 
     You can now use `--bundle` without providing any input files and the input will come from stdin instead. Use `--sourcefile=...` to set the name of the input file for error messages and source maps. Dependencies of the input file will be resolved relative to the current working directory.
 
@@ -2461,15 +2461,15 @@ The breaking changes are as follows:
     console.log(stdout)
     ```
 
-* Implement `extends` for `tsconfig.json` ([#233](https://github.com/evanw/esbuild/issues/233))
+* Implement `extends` for `tsconfig.json` ([#233](https://github.com/aperturerobotics/esbuild/issues/233))
 
     A `tsconfig.json` file can inherit configurations from another file using the `extends` property. Before this release, esbuild didn't support this property and any inherited settings were missing. Now esbuild should include these inherited settings.
 
-* Allow manually overriding `tsconfig.json` ([#226](https://github.com/evanw/esbuild/issues/226))
+* Allow manually overriding `tsconfig.json` ([#226](https://github.com/aperturerobotics/esbuild/issues/226))
 
     Normally esbuild finds the appropriate `tsconfig.json` file by walking up the directory tree. This release adds the `--tsconfig=...` flag which lets you disable this feature and force esbuild to use the provided configuration file instead. This corresponds to the TypeScript compiler's `--project` flag.
 
-* Remove gaps in source maps within a file ([#249](https://github.com/evanw/esbuild/issues/249))
+* Remove gaps in source maps within a file ([#249](https://github.com/aperturerobotics/esbuild/issues/249))
 
     The widely-used [source-map](https://github.com/mozilla/source-map) library for parsing source maps [has a bug](https://github.com/mozilla/source-map/issues/261) where it doesn't return mappings from previous lines. This can cause queries within generated code to fail even though there are valid mappings on both sides of the query.
 
@@ -2479,7 +2479,7 @@ The breaking changes are as follows:
 
 ## 0.6.0
 
-* Output directory may now contain nested directories ([#224](https://github.com/evanw/esbuild/issues/224))
+* Output directory may now contain nested directories ([#224](https://github.com/aperturerobotics/esbuild/issues/224))
 
     Note: This is a breaking change if you use multiple entry points from different directories. Output paths may change with this upgrade.
 
@@ -2495,7 +2495,7 @@ The breaking changes are as follows:
 
     With this release, esbuild will now generate nested directories in the output directory that mirror the directory structure of the original entry points. This avoids collisions because the output files will now be in separate directories. The directory structure is mirrored relative to the [lowest common ancestor](https://en.wikipedia.org/wiki/Lowest_common_ancestor) among all entry point paths. This is the same behavior as [Parcel](https://github.com/parcel-bundler/parcel) and the TypeScript compiler.
 
-* Silence errors about missing dependencies inside try/catch blocks ([#247](https://github.com/evanw/esbuild/issues/247))
+* Silence errors about missing dependencies inside try/catch blocks ([#247](https://github.com/aperturerobotics/esbuild/issues/247))
 
     This release makes it easier to use esbuild with libraries such as [debug](npmjs.com/package/debug) which contain a use of `require()` inside a `try`/`catch` statement for a module that isn't listed in its dependencies. Normally you need to mark the library as `--external` to silence this error. However, calling `require()` and catching errors is a common pattern for conditionally importing an unknown module, so now esbuild automatically treats the missing module as external in these cases.
 
@@ -2503,17 +2503,17 @@ The breaking changes are as follows:
 
     The node-based JavaScript API already ships with TypeScript type checking for the `esbuild` and `esbuild-wasm` packages. However, up until now the browser-based JavaScript API located in `esbuild-wasm/lib/browser` did not have type definitions. This release adds type definitions so you can now import `esbuild-wasm/lib/browser` in TypeScript and get type checking.
 
-* Add chunk imports to metadata file ([#225](https://github.com/evanw/esbuild/issues/225))
+* Add chunk imports to metadata file ([#225](https://github.com/aperturerobotics/esbuild/issues/225))
 
     With code splitting, it's sometimes useful to list out the chunks that will be needed by a given entry point. For example, you may want to use that list to insert one `<link rel="modulepreload">` tag for each chunk in your page header. This information is now present in the JSON metadata file that's generated with the `--metafile` flag. Each object in the `outputs` map now has an `imports` array, and each import has a `path`.
 
 ## 0.5.26
 
-* Allow disabling non-existent modules with the `browser` package.json field ([#238](https://github.com/evanw/esbuild/issues/238))
+* Allow disabling non-existent modules with the `browser` package.json field ([#238](https://github.com/aperturerobotics/esbuild/issues/238))
 
     The [browser field](https://github.com/defunctzombie/package-browser-field-spec) in package.json allows you to disable a module (i.e. force it to become empty) by adding an override that points to `false`. Previously esbuild still required it to have an existing absolute path on the file system so that the disabled module could have a consistent identity. Now this is no longer required, so you can disable modules that don't exist on the file system. For example, you can now use this feature to disable the `fs` module.
 
-* Fix a bug with syntax transformation and `super()` calls ([#242](https://github.com/evanw/esbuild/issues/242))
+* Fix a bug with syntax transformation and `super()` calls ([#242](https://github.com/aperturerobotics/esbuild/issues/242))
 
     In certain situations, esbuild accidentally transformed a class constructor such that a call to `super()` that came first in the original code no longer came first in the generated code. This code generation bug has now been fixed. Calls to `super()` that come first are should now stay that way.
 
@@ -2527,7 +2527,7 @@ The breaking changes are as follows:
 
     You can now assign the `binary` loader to a file extension to load all files of that type into a Uint8Array. The data is encoded as a base64 string and decoded into a Uint8Array at run time. The decoder defaults to a custom platform-independent implementation (faster than `atob`) but it switches to using the `Buffer` API with `--platform=node`.
 
-* Add fine-grained `--target` environments ([#231](https://github.com/evanw/esbuild/issues/231))
+* Add fine-grained `--target` environments ([#231](https://github.com/aperturerobotics/esbuild/issues/231))
 
     You can now configure individual JavaScript environments as targets. The `--target` flag now takes a comma-separated list of values like this: `--target=chrome58,firefox57,safari11,edge16`. Compatibility data was mainly sourced from [this widely-used compatibility table](https://kangax.github.io/compat-table/es2016plus/).
 
@@ -2590,7 +2590,7 @@ The breaking changes are as follows:
 
 ## 0.5.23
 
-* Fix `export declare` inside `namespace` in TypeScript ([#227](https://github.com/evanw/esbuild/issues/227))
+* Fix `export declare` inside `namespace` in TypeScript ([#227](https://github.com/aperturerobotics/esbuild/issues/227))
 
     The TypeScript parser assumed that ambient declarations (the `declare` keyword) just declared types and did not affect the output. This was an incorrect assumption for exported declarations of local variables inside namespaces. The assignment to `foo` in the example below must be rewritten to an assignment to `ns.foo`:
 
@@ -2603,17 +2603,17 @@ The breaking changes are as follows:
 
     This should now work correctly.
 
-* Preserve certain statement-level comments ([#221](https://github.com/evanw/esbuild/issues/221))
+* Preserve certain statement-level comments ([#221](https://github.com/aperturerobotics/esbuild/issues/221))
 
     Statement-level comments starting with `//!` or `/*!` or containing `@preserve` or `@license` are now preserved in the output. This matches the behavior of other JavaScript tools such as [Terser](https://github.com/terser/terser).
 
-* Higher memory limit for synchronous JavaScript APIs ([#228](https://github.com/evanw/esbuild/issues/228))
+* Higher memory limit for synchronous JavaScript APIs ([#228](https://github.com/aperturerobotics/esbuild/issues/228))
 
     Apparently the synchronous APIs in node's child process module that esbuild relies on will fail with `ENOBUFS` if the output is larger than a certain size. This caused issues with the `write: false` feature from the previous release. The memory limit has been raised to 16mb which should hopefully avoid these crashes. If that limit is still too low, it can be overridden with the `ESBUILD_MAX_BUFFER` environment variable.
 
 ## 0.5.22
 
-* JavaScript build API can now avoid writing to the file system ([#139](https://github.com/evanw/esbuild/issues/139) and [#220](https://github.com/evanw/esbuild/issues/220))
+* JavaScript build API can now avoid writing to the file system ([#139](https://github.com/aperturerobotics/esbuild/issues/139) and [#220](https://github.com/aperturerobotics/esbuild/issues/220))
 
     You can now pass `write: false` to the JavaScript build API to avoid writing to the file system. Instead, the returned object will have the `outputFiles` property with an array of output files, each of which has a string `path` property and a Uint8Array `contents` property. This brings the JavaScript API to parity with the Go API, which already had this feature.
 
@@ -2633,7 +2633,7 @@ The breaking changes are as follows:
     })()
     ```
 
-* Add `--pure:name` to annotate calls to globals ([#28](https://github.com/evanw/esbuild/issues/28))
+* Add `--pure:name` to annotate calls to globals ([#28](https://github.com/aperturerobotics/esbuild/issues/28))
 
     This flag makes calls to the named function behave as if that call was prefixed by `/* @__PURE__ */`. For example, `--pure:console.log` means calls to `console.log()` will behave as if they were calls to `/* @__PURE__ */ console.log()` instead. This means when `--minify` is active, the calls will be removed as long as the return value is unused (any function arguments with side effects will be kept, however).
 
@@ -2651,7 +2651,7 @@ The breaking changes are as follows:
 
 ## 0.5.21
 
-* Binaries for FreeBSD ([#217](https://github.com/evanw/esbuild/pull/217))
+* Binaries for FreeBSD ([#217](https://github.com/aperturerobotics/esbuild/pull/217))
 
     There are now esbuild binaries for FreeBSD, both for AMD64 and ARM64. This was contributed by [@kikuchan](https://github.com/kikuchan).
 
@@ -2661,15 +2661,15 @@ The breaking changes are as follows:
 
 ## 0.5.20
 
-* Allow multiple `.` characters in loader extensions ([#215](https://github.com/evanw/esbuild/issues/215))
+* Allow multiple `.` characters in loader extensions ([#215](https://github.com/aperturerobotics/esbuild/issues/215))
 
     You are now able to configure two loaders such that one is the suffix of the other. For example, you can now configure both `--loader:.txt=text` and `--loader:.base64.txt=base64`. The loader with the longer matching suffix will be used.
 
-* Add support for scoped external packages ([#214](https://github.com/evanw/esbuild/issues/214))
+* Add support for scoped external packages ([#214](https://github.com/aperturerobotics/esbuild/issues/214))
 
     You can now mark scoped packages as external. For example, `--external:@babel/core` marks the package `@babel/core` as external. This was contributed by [@floydspace](https://github.com/floydspace).
 
-* Add support for external paths ([#127](https://github.com/evanw/esbuild/issues/127) and [#191](https://github.com/evanw/esbuild/issues/191))
+* Add support for external paths ([#127](https://github.com/aperturerobotics/esbuild/issues/127) and [#191](https://github.com/aperturerobotics/esbuild/issues/191))
 
     Previously the `--external:M` flag only worked if `M` was a package name. For example, you can mark the `fs` package as external with `--external:fs`.
 
@@ -2677,7 +2677,7 @@ The breaking changes are as follows:
 
 ## 0.5.19
 
-* Fix bug with TypeScript `typeof` operator ([#213](https://github.com/evanw/esbuild/issues/213))
+* Fix bug with TypeScript `typeof` operator ([#213](https://github.com/aperturerobotics/esbuild/issues/213))
 
     The TypeScript parser in esbuild incorrectly treated `readonly` in `typeof readonly` as a type operator instead of an identifier, which meant that it expected a type expression to follow the `readonly` identifier. Type expressions containing `typeof readonly` are now parsed correctly.
 
@@ -2689,7 +2689,7 @@ The breaking changes are as follows:
 
 ## 0.5.17
 
-* Pass through `import.meta` syntax ([#208](https://github.com/evanw/esbuild/issues/208))
+* Pass through `import.meta` syntax ([#208](https://github.com/aperturerobotics/esbuild/issues/208))
 
     The `import.meta` syntax is a way for code in an ES6 module to access metadata about itself. For example, `import.meta.url` in the browser is the URL of the current module.
 
@@ -2699,7 +2699,7 @@ The breaking changes are as follows:
 
 ## 0.5.16
 
-* Experimental code splitting with `--splitting` ([#16](https://github.com/evanw/esbuild/issues/16))
+* Experimental code splitting with `--splitting` ([#16](https://github.com/aperturerobotics/esbuild/issues/16))
 
     This release includes experimental support for code splitting. Enable it with the `--splitting` flag. This currently only works with the `esm` output format. Support for the `cjs` and `iife` formats will come later. It's being released early so people can try it out and provide feedback.
 
@@ -2717,11 +2717,11 @@ The breaking changes are as follows:
 
     Note that using code splitting with many entry points may generate many chunks for shared code reachable from different combinations of entry points. This should work fine and should still be efficient with HTTP/2. If you want to only let certain entry points share code, you can run esbuild multiple times for different groups of entry points.
 
-    Please try it out and report any issues on [#16](https://github.com/evanw/esbuild/issues/16).
+    Please try it out and report any issues on [#16](https://github.com/aperturerobotics/esbuild/issues/16).
 
 ## 0.5.15
 
-* Remove some unnecessary helper functions ([#206](https://github.com/evanw/esbuild/issues/206))
+* Remove some unnecessary helper functions ([#206](https://github.com/aperturerobotics/esbuild/issues/206))
 
     Certain unnecessary helper functions were sometimes generated when the output format was `esm`. These helper functions should now only be generated when necessary.
 
@@ -2737,13 +2737,13 @@ The breaking changes are as follows:
 
 ## 0.5.14
 
-* Prevent assignment to ES6 imports ([#202](https://github.com/evanw/esbuild/issues/202))
+* Prevent assignment to ES6 imports ([#202](https://github.com/aperturerobotics/esbuild/issues/202))
 
     ES6 imports are live bindings to other values, sort of like a getter-only property on an object. An assignment to an import identifier should cause a `TypeError` at run time according to the specification. However, when bundling esbuild performs the "scope hoisting" optimization and merges all modules into a single scope. Imports inside the bundle refer to the imported identifiers without any indirection and an assignment will not throw a `TypeError` at run time.
 
     This release turns assignments to imports into compile-time errors to reject invalid code instead of allowing it to cause this non-conforming behavior. Handling this at compile-time is consistent with other tools such as TypeScript and Rollup.
 
-* Exclude external child paths from the bundle ([#186](https://github.com/evanw/esbuild/pull/186))
+* Exclude external child paths from the bundle ([#186](https://github.com/aperturerobotics/esbuild/pull/186))
 
     Marking a module as external via `--external:foo` means any imports for the module `foo` will be preserved in the output instead of being traversed by the bundler. This is helpful if the module contains problematic code such as a native node module that can't be bundled.
 
@@ -2764,7 +2764,7 @@ The breaking changes are as follows:
 
 ## 0.5.12
 
-* Fix a JSX whitespace bug ([#195](https://github.com/evanw/esbuild/issues/195))
+* Fix a JSX whitespace bug ([#195](https://github.com/aperturerobotics/esbuild/issues/195))
 
     Whitespace behavior in JSX has unfortunately been [left out of the JSX specification](https://github.com/facebook/jsx/issues/6), so it's up to each implementation to determine how to handle whitespace characters. Most of the JSX parsers in the ecosystem have converged on similar behavior. When they differ, esbuild follows the behavior of the TypeScript JSX parser.
 
@@ -2798,13 +2798,13 @@ Note that you can also just use `--strict` to enable strictness for all transfor
 
 ## 0.5.8
 
-* Transform async functions ([#137](https://github.com/evanw/esbuild/issues/137))
+* Transform async functions ([#137](https://github.com/aperturerobotics/esbuild/issues/137))
 
     This release transforms async functions into generator functions for older browsers when the language target is set to `--target=es2016` or below. The transform esbuild uses is similar to the one used by the TypeScript compiler.
 
 ## 0.5.7
 
-* Transform private fields and private methods ([#47](https://github.com/evanw/esbuild/issues/47))
+* Transform private fields and private methods ([#47](https://github.com/aperturerobotics/esbuild/issues/47))
 
     Private names are an access control mechanism for classes. They begin with a `#` and are not accessible outside of the class they are declared in. Support for parsing this syntax was added in esbuild version 0.4.9 but the syntax was passed through unmodified, meaning it didn't work in older browsers.
 
@@ -2840,7 +2840,7 @@ Note that you can also just use `--strict` to enable strictness for all transfor
 
 ## 0.5.6
 
-* Fix re-export statements ([#190](https://github.com/evanw/esbuild/issues/190))
+* Fix re-export statements ([#190](https://github.com/aperturerobotics/esbuild/issues/190))
 
     The previous release caused a regression due to some behind-the-scenes work for the upcoming code splitting feature. The re-export alias in statements of the form `export { foo as bar } from 'path'` could sometimes incorrectly be renamed to something else, such as `foo` becoming `foo2`. This release fixes the bug.
 
@@ -2890,7 +2890,7 @@ Note that you can also just use `--strict` to enable strictness for all transfor
 
 ## 0.5.4
 
-* Source maps use `/` on Windows ([#188](https://github.com/evanw/esbuild/issues/188))
+* Source maps use `/` on Windows ([#188](https://github.com/aperturerobotics/esbuild/issues/188))
 
     Before generated source maps used `\` on Windows, which meant that tools consuming these source maps (e.g. Chrome) didn't recognize these characters as path separators. Now all platforms consistently use `/` as a path separator.
 
@@ -2900,13 +2900,13 @@ Note that you can also just use `--strict` to enable strictness for all transfor
 
 ## 0.5.3
 
-* Special-case `require` in browserify bundles ([#80](https://github.com/evanw/esbuild/issues/80) and [#90](https://github.com/evanw/esbuild/issues/90))
+* Special-case `require` in browserify bundles ([#80](https://github.com/aperturerobotics/esbuild/issues/80) and [#90](https://github.com/aperturerobotics/esbuild/issues/90))
 
     [Browserify](https://browserify.org/) generates code containing the expression `typeof require == "function" && require` which then ends up in a lot of npm packages. This expression is problematic because bundling involves statically determining all source files and their dependencies. Using `require` dynamically like this defeats the static analysis. It's also problematic because esbuild replaces `typeof require == "function"` with `true` since `require` is a function at compile-time when bundling. Then `true && require` becomes `require` in the generated code, which crashes at run time.
 
     Previously esbuild would generate an error for these expressions. Now esbuild replaces `typeof require == "function" && require` with `false` when targeting the browser and `require` when targeting node. This matches the intent of the browserify prelude snippet and allows esbuild to build libraries containing this code without errors or warnings.
 
-* Allow dynamic dependencies ([#113](https://github.com/evanw/esbuild/issues/113))
+* Allow dynamic dependencies ([#113](https://github.com/aperturerobotics/esbuild/issues/113))
 
     Bundling `require()` or `import()` when the argument isn't a string literal is a dynamic dependency. The dependency path relies on dynamic run-time behavior and cannot be statically determined by esbuild at bundle time.
 
@@ -2922,15 +2922,15 @@ Note that you can also just use `--strict` to enable strictness for all transfor
 
     The `-->` sequence starts a single-line comment similar to `//`. This is legacy behavior from [annex B](https://www.ecma-international.org/ecma-262/6.0/#sec-html-like-comments) under the name `SingleLineHTMLCloseComment`. However, `-->` was incorrectly treated as the start of a comment even when it didn't come at the beginning of the line. Now `-->` only starts a comment if there are no tokens before it on that line.
 
-* Allow shadowing of CommonJS variables ([#165](https://github.com/evanw/esbuild/issues/165))
+* Allow shadowing of CommonJS variables ([#165](https://github.com/aperturerobotics/esbuild/issues/165))
 
     It's now no longer an error to re-declare `exports`, `module`, or `require` in a module scope. The re-declared symbol will just silently shadow the CommonJS variable with that name. This allows to use a variable called `exports` in an ES6 module, for example.
 
 ## 0.5.1
 
-* Go documentation was moved to godoc ([#177](https://github.com/evanw/esbuild/pull/177))
+* Go documentation was moved to godoc ([#177](https://github.com/aperturerobotics/esbuild/pull/177))
 
-    The Go documentation is now in the source files itself instead of in an external Markdown file. View it online at https://godoc.org/github.com/evanw/esbuild/pkg/api and https://godoc.org/github.com/evanw/esbuild/pkg/cli.
+    The Go documentation is now in the source files itself instead of in an external Markdown file. View it online at https://godoc.org/github.com/aperturerobotics/esbuild/pkg/api and https://godoc.org/github.com/aperturerobotics/esbuild/pkg/cli.
 
 * The browser API now works in a script tag
 
@@ -2966,17 +2966,17 @@ Note that you can also just use `--strict` to enable strictness for all transfor
 
     Here are some of the highlights:
 
-    * There is now a public Go API ([#152](https://github.com/evanw/esbuild/issues/152))
+    * There is now a public Go API ([#152](https://github.com/aperturerobotics/esbuild/issues/152))
 
-        The main API can be found in the [`github.com/evanw/esbuild/pkg/api`](pkg/api/api.go) module. It exposes the exact same features as the JavaScript API. This means you can use esbuild as a JavaScript transformation and bundling library from Go code without having to run esbuild as a child process. There is also the [`github.com/evanw/esbuild/pkg/cli`](pkg/cli/cli.go) module which can be used to wrap the esbuild CLI itself.
+        The main API can be found in the [`github.com/aperturerobotics/esbuild/pkg/api`](pkg/api/api.go) module. It exposes the exact same features as the JavaScript API. This means you can use esbuild as a JavaScript transformation and bundling library from Go code without having to run esbuild as a child process. There is also the [`github.com/aperturerobotics/esbuild/pkg/cli`](pkg/cli/cli.go) module which can be used to wrap the esbuild CLI itself.
 
-    * There are now synchronous JavaScript APIs ([#136](https://github.com/evanw/esbuild/issues/136))
+    * There are now synchronous JavaScript APIs ([#136](https://github.com/aperturerobotics/esbuild/issues/136))
 
         Sometimes JavaScript source transformations must be synchronous. For example, using esbuild's API to shim `require()` for `.ts` files was previously not possible because esbuild only had an asynchronous transform API.
 
         This release adds the new `transformSync()` and `buildSync()` synchronous functions to mirror the existing `transform()` and `build()` asynchronous functions. Note that these synchronous calls incur the cost of starting up a new child process each time, so you should only use these instead of `startService()` if you have to (or if you don't care about optimal performance).
 
-    * There is now an experimental browser-based API ([#172](https://github.com/evanw/esbuild/issues/172))
+    * There is now an experimental browser-based API ([#172](https://github.com/aperturerobotics/esbuild/issues/172))
 
         The `esbuild-wasm` package now has a file called `browser.js` that exposes a `startService()` API which is similar to the esbuild API available in node. You can either import the `esbuild-wasm` package using a bundler that respects the `browser` field in `package.json` or import the `esbuild-wasm/lib/browser.js` file directly.
 
@@ -3000,29 +3000,29 @@ Note that you can also just use `--strict` to enable strictness for all transfor
 
         This API is experimental and may be changed in the future depending on the feedback it gets.
 
-    * Error messages now use `sourcefile` ([#131](https://github.com/evanw/esbuild/issues/131))
+    * Error messages now use `sourcefile` ([#131](https://github.com/aperturerobotics/esbuild/issues/131))
 
         Errors from transform API calls now use `sourcefile` as the original file name if present. Previously the file name in error messages was always `/input.js`.
 
 ## 0.4.14
 
-* Do not reorder `"use strict"` after support code ([#173](https://github.com/evanw/esbuild/issues/173))
+* Do not reorder `"use strict"` after support code ([#173](https://github.com/aperturerobotics/esbuild/issues/173))
 
     Even when not in bundling mode, esbuild sometimes adds automatically-generated support code at the start of the output file. For example, using the `**` operator with `--target=es2015` causes `let __pow = Math.pow` to be inserted at the start of the file. This interfered with `"use strict"` directives, which must come first. Now `"use strict"` directives are written out first before any automatically-generated support code.
 
-* Fix bug with export star pointing to a re-export ([#176](https://github.com/evanw/esbuild/issues/176))
+* Fix bug with export star pointing to a re-export ([#176](https://github.com/aperturerobotics/esbuild/issues/176))
 
     This fixes a tree shaking bug that involves an `export * from ...` statement pointing to a file with a `export {name} from ...` statement. Now `name` will no longer be incorrectly removed from the bundle.
 
 ## 0.4.13
 
-* Fix possible name collision with CommonJS the target ([#174](https://github.com/evanw/esbuild/issues/174))
+* Fix possible name collision with CommonJS the target ([#174](https://github.com/aperturerobotics/esbuild/issues/174))
 
     A bug meant that the export objects for individual modules with the same filename could in some cases end up reusing the same name in the output file, which then caused a syntax error. This only happened with the `cjs` target. The bug has been fixed.
 
 ## 0.4.12
 
-* Support `export * from ...` for CommonJS modules ([#159](https://github.com/evanw/esbuild/issues/159))
+* Support `export * from ...` for CommonJS modules ([#159](https://github.com/aperturerobotics/esbuild/issues/159))
 
     Wildcard re-exports are now supported when the exports come from a CommonJS or external module. Since CommonJS modules are not statically analyzable, this means in these cases the re-exports are evaluated at run time instead of at bundle time. Modules that re-export symbols this way will also be considered CommonJS modules during bundling because their exports are now also not statically analyzable.
 
@@ -3042,7 +3042,7 @@ Note that you can also just use `--strict` to enable strictness for all transfor
 
 ## 0.4.10
 
-* Initial implementation of TypeScript decorators ([#104](https://github.com/evanw/esbuild/issues/104))
+* Initial implementation of TypeScript decorators ([#104](https://github.com/aperturerobotics/esbuild/issues/104))
 
     This release contains an initial implementation of the non-standard TypeScript-specific decorator syntax. This syntax transformation is enabled by default in esbuild, so no extra configuration is needed. The TypeScript compiler will need `"experimentalDecorators": true` configured in `tsconfig.json` for type checking to work with TypeScript decorators.
 
@@ -3084,7 +3084,7 @@ Note that you can also just use `--strict` to enable strictness for all transfor
 
 ## 0.4.9
 
-* Initial support for private names ([#47](https://github.com/evanw/esbuild/issues/47))
+* Initial support for private names ([#47](https://github.com/aperturerobotics/esbuild/issues/47))
 
     Private names are an access control mechanism for classes. They begin with a `#` and are not accessible outside of the class they are declared in. The private name syntax can now be parsed, printed, and minified correctly. Transforming this syntax for older browsers is not supported yet. This is what the syntax looks like:
 
@@ -3112,7 +3112,7 @@ Note that you can also just use `--strict` to enable strictness for all transfor
 
 ## 0.4.8
 
-* Add the `--metafile` flag ([#140](https://github.com/evanw/esbuild/issues/140))
+* Add the `--metafile` flag ([#140](https://github.com/aperturerobotics/esbuild/issues/140))
 
     Pass `--metafile=meta.json` to write metadata about the build to the file `meta.json`. This includes information such as which files are in the bundle, what other files a given file depends on, and how much of each file ended up in the bundle. This is similar to the [stats option in Webpack](https://webpack.js.org/api/stats/).
 
@@ -3141,7 +3141,7 @@ Note that you can also just use `--strict` to enable strictness for all transfor
     }
     ```
 
-* Shorten numeric literals ([#122](https://github.com/evanw/esbuild/issues/122))
+* Shorten numeric literals ([#122](https://github.com/aperturerobotics/esbuild/issues/122))
 
     Certain numeric literals now use shorter representations in the generated JavaScript code. For example, `123400000` is now written out as `1234e5`.
 
@@ -3157,67 +3157,67 @@ Note that you can also just use `--strict` to enable strictness for all transfor
 
 ## 0.4.6
 
-* Respect the `sideEffects` field when tree shaking ([#50](https://github.com/evanw/esbuild/issues/50))
+* Respect the `sideEffects` field when tree shaking ([#50](https://github.com/aperturerobotics/esbuild/issues/50))
 
     Tree shaking now respects `"sideEffects": false` in `package.json`, which means esbuild now generates smaller bundles with certain libraries such as [lodash-es](https://www.npmjs.com/package/lodash-es). This setting is a [convention from Webpack](https://webpack.js.org/guides/tree-shaking/#mark-the-file-as-side-effect-free). Any files in a package with this setting will not be included in the bundle if they are imported using an ES6 import and then never used.
 
 ## 0.4.5
 
-* Fix a crash with more than 8 entry points ([#162](https://github.com/evanw/esbuild/pull/162))
+* Fix a crash with more than 8 entry points ([#162](https://github.com/aperturerobotics/esbuild/pull/162))
 
     This bug was due to the wrong index being used for an internal bit set. That caused a crash due to an out-of-bounds array read when esbuild is run with more than 8 entry points. I now have test coverage for large numbers of entry points, so this should not happen again.
 
-* Fix slash characters in file loader ([#164](https://github.com/evanw/esbuild/pull/164))
+* Fix slash characters in file loader ([#164](https://github.com/aperturerobotics/esbuild/pull/164))
 
     This fixes a bug where the base64-encoded hash included in the file name could sometimes contain a `/` character. The fix is to use the base64 character set for URL-encoding, which replaces the `/` character with a `_` character.
 
 ## 0.4.4
 
-* Fix optional chaining with TypeScript operators ([#168](https://github.com/evanw/esbuild/issues/168))
+* Fix optional chaining with TypeScript operators ([#168](https://github.com/aperturerobotics/esbuild/issues/168))
 
     The work on optional chaining in the previous release introduced a regression where the TypeScript infix operators `!` and `<>` incorrectly stopped the propagation of optional chaining. That meant `a?.b!()` and `a?.b<T>()` incorrectly behaved like `(a?.b)()` instead of `a?.b()`. This now has test coverage.
 
-* Add support for the `"paths"` field in `tsconfig.json` ([#60](https://github.com/evanw/esbuild/issues/60) and [#144](https://github.com/evanw/esbuild/issues/144))
+* Add support for the `"paths"` field in `tsconfig.json` ([#60](https://github.com/aperturerobotics/esbuild/issues/60) and [#144](https://github.com/aperturerobotics/esbuild/issues/144))
 
     This provides a way of remapping module paths to local file paths. It's relatively powerful because it supports wildcard patterns and multiple fallback locations. See [the documentation in the TypeScript handbook](https://www.typescriptlang.org/docs/handbook/module-resolution.html#path-mapping) for more information about how this feature works. This was contributed by [@viankakrisna](https://github.com/viankakrisna).
 
-* Add the `file` loader ([#14](https://github.com/evanw/esbuild/issues/14) and [#135](https://github.com/evanw/esbuild/pull/135))
+* Add the `file` loader ([#14](https://github.com/aperturerobotics/esbuild/issues/14) and [#135](https://github.com/aperturerobotics/esbuild/pull/135))
 
     The `file` loader copies the input file to the output directory and exports the path of the file as a string to any modules that import the file. For example, `--loader:.png=file` enables this loader for all imported `.png` files. This was contributed by [@viankakrisna](https://github.com/viankakrisna).
 
-* Add the `--resolve-extensions` flag ([#142](https://github.com/evanw/esbuild/pull/142))
+* Add the `--resolve-extensions` flag ([#142](https://github.com/aperturerobotics/esbuild/pull/142))
 
     This lets you override the implicit extensions that are tested when importing a file. It must be a comma-separated list of extensions. For example, setting `--resolve-extensions=.jsx,.js` means `import "./foo"` will check for `./foo` then `./foo.jsx` then `./foo.js` in that order. The behavior corresponds to [the similarly-named feature in Webpack](https://webpack.js.org/configuration/resolve/#resolveextensions). This was contributed by [@viankakrisna](https://github.com/viankakrisna).
 
 ## 0.4.3
 
-* Fix bug with optional chaining parentheses ([#156](https://github.com/evanw/esbuild/issues/156))
+* Fix bug with optional chaining parentheses ([#156](https://github.com/aperturerobotics/esbuild/issues/156))
 
     One edge case with JavaScript optional chaining syntax is that parentheses stop the chain. So `a?.b.c` will be `undefined` if `a` is nullish but `(a?.b).c` will crash if `a` is nullish.
 
     This was handled correctly when lowering is enabled (i.e. when the language target is `es2019` or below) but was not handled correctly when lowering is disabled (i.e. when the language target is `es2020` or above). The output for `(a?.b).c` was incorrectly `a?.b.c` instead of `(a?.b).c`, which would no longer crash if `a` is nullish. The fix is to preserve the parentheses in the output.
 
-* Support for the PowerPC 64-bit Little Endian architecture on Linux ([#146](https://github.com/evanw/esbuild/pull/146))
+* Support for the PowerPC 64-bit Little Endian architecture on Linux ([#146](https://github.com/aperturerobotics/esbuild/pull/146))
 
     This was contributed by [@runlevel5](https://github.com/runlevel5).
 
 ## 0.4.2
 
-* Bind imports to re-exports ([#149](https://github.com/evanw/esbuild/issues/149))
+* Bind imports to re-exports ([#149](https://github.com/aperturerobotics/esbuild/issues/149))
 
     This fixes a bug where imports of re-exported symbols were not correctly merged in some cases. This resulted in the generated code referencing symbols that were not declared, resulting in a crash.
 
 ## 0.4.1
 
-* Add a log level setting ([#117](https://github.com/evanw/esbuild/issues/117))
+* Add a log level setting ([#117](https://github.com/aperturerobotics/esbuild/issues/117))
 
     You can now silence esbuild except for errors with `--log-level=error`, or except for errors and warnings with `--log-level=warning`.
 
-* Now `jsconfig.json` is an alternative to `tsconfig.json` ([#132](https://github.com/evanw/esbuild/pull/132))
+* Now `jsconfig.json` is an alternative to `tsconfig.json` ([#132](https://github.com/aperturerobotics/esbuild/pull/132))
 
     The `"baseUrl"` setting in `tsconfig.json`, which lets you avoid `../../` relative import paths, is respected by esbuild. With this change, esbuild will also check for this setting in `jsconfig.json` if no `tsconfig.json` file is found. This is relevant to some projects that use the TypeScript compiler with JavaScript files instead of TypeScript files. You can read more about this feature [here](https://code.visualstudio.com/docs/languages/jsconfig). This was contributed by [@viankakrisna](https://github.com/viankakrisna).
 
-* Chinese translation of documentation ([#129](https://github.com/evanw/esbuild/pull/129))
+* Chinese translation of documentation ([#129](https://github.com/aperturerobotics/esbuild/pull/129))
 
     Both the readme and the architecture documentation have been translated into Chinese, which is available here: http://docs.breword.com/evanw-esbuild. This was contributed by [@92hackers](https://github.com/92hackers).
 
@@ -3227,11 +3227,11 @@ Note that you can also just use `--strict` to enable strictness for all transfor
 
 ## 0.4.0
 
-* Add the `esm` output format ([#48](https://github.com/evanw/esbuild/issues/48))
+* Add the `esm` output format ([#48](https://github.com/aperturerobotics/esbuild/issues/48))
 
     It is now possible to generate a bundle in ES6 module format using `--format=esm`. The generated code uses ES6 import and export statements. This is useful for bundling code to be used as a library, for using in a `<script type="module>` tag in the browser, or for using with node's `--experimental-modules` flag. Note that CommonJS entry points bundled with this format will become a single default export, which is the same way node works.
 
-* Preliminary tree shaking support ([#50](https://github.com/evanw/esbuild/issues/50))
+* Preliminary tree shaking support ([#50](https://github.com/aperturerobotics/esbuild/issues/50))
 
     Bundling now performs tree shaking, which is also known as dead code elimination. Every top-level statement is considered to be a separate part of the file, and unused parts without any side effects are not included in the bundle. This only really affects code using ES6 modules, so make sure you use ES6 modules to take advantage of tree shaking.
 
@@ -3251,29 +3251,29 @@ Note that you can also just use `--strict` to enable strictness for all transfor
 
 ## 0.3.9
 
-* Add the `dataurl` loader ([#107](https://github.com/evanw/esbuild/pull/107))
+* Add the `dataurl` loader ([#107](https://github.com/aperturerobotics/esbuild/pull/107))
 
     This loader turns the file into a base64-encoded data URL. The mime type is automatically derived from the file extension, with the file contents used as a fallback. This was contributed by [@viankakrisna](https://github.com/viankakrisna).
 
-* Fix minification bug with external modules ([#134](https://github.com/evanw/esbuild/issues/134))
+* Fix minification bug with external modules ([#134](https://github.com/aperturerobotics/esbuild/issues/134))
 
     When loading a module marked `--external` with `require()`, the resulting code was sometimes incorrectly minified when bundling. This now has test coverage.
 
 ## 0.3.8
 
-* Fix an issue that prevented non-inline source maps with the `build()` API ([#130](https://github.com/evanw/esbuild/issues/130))
+* Fix an issue that prevented non-inline source maps with the `build()` API ([#130](https://github.com/aperturerobotics/esbuild/issues/130))
 
     The issue happend when invoking `esbuild.build({ sourcemap: true })` and was a regression due to the addition of inline source map support. This now has test coverage.
 
 ## 0.3.7
 
-* Add an unsupported build for ARM64 ([#123](https://github.com/evanw/esbuild/issues/123))
+* Add an unsupported build for ARM64 ([#123](https://github.com/aperturerobotics/esbuild/issues/123))
 
     Now you can `npm install esbuild` on a Linux ARM64 machine and it should work. This lets you run esbuild on a Raspberry Pi. Note that this target isn't officially supported because it's not covered by any automated tests. This was contributed by [@violentmagician](https://github.com/violentmagician).
 
 ## 0.3.6
 
-* Fix a bug with JSX element contents that end in a multi-byte unicode character ([#124](https://github.com/evanw/esbuild/issues/124))
+* Fix a bug with JSX element contents that end in a multi-byte unicode character ([#124](https://github.com/aperturerobotics/esbuild/issues/124))
 
     Such characters are now preserved instead of being truncated.
 
@@ -3293,7 +3293,7 @@ Note that you can also just use `--strict` to enable strictness for all transfor
 
 ## 0.3.3
 
-* Support all unicode whitespace ([#116](https://github.com/evanw/esbuild/issues/116))
+* Support all unicode whitespace ([#116](https://github.com/aperturerobotics/esbuild/issues/116))
 
     The lexer now accepts all unicode characters in the `WS` category as valid whitespace to match the JavaScript standard.
 
@@ -3307,13 +3307,13 @@ Note that you can also just use `--strict` to enable strictness for all transfor
 
 ## 0.3.1
 
-* Remove type-only exports from TypeScript ([#110](https://github.com/evanw/esbuild/issues/110))
+* Remove type-only exports from TypeScript ([#110](https://github.com/aperturerobotics/esbuild/issues/110))
 
     This fixes a bug where type-only exports in TypeScript files could in some cases generate an invalid export statement.
 
 ## 0.3.0
 
-* Support for stdin/stdout ([#76](https://github.com/evanw/esbuild/issues/76))
+* Support for stdin/stdout ([#76](https://github.com/aperturerobotics/esbuild/issues/76))
 
     You can now pass esbuild an input file over stdin instead of using a file path. Use the `--loader=jsx` syntax to set the loader instead of using the `--loader:.js=jsx` syntax.
 

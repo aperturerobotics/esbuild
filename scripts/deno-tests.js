@@ -23,7 +23,7 @@ function test(name, backends, fn) {
   // Specifically tests that Deno would otherwise have failed with "error:
   // Promise resolution is still pending but the event loop has already
   // resolved" were being allowed to pass instead. See this issue for more
-  // information: https://github.com/evanw/esbuild/issues/3682
+  // information: https://github.com/aperturerobotics/esbuild/issues/3682
 
   for (const backend of backends) {
     switch (backend) {

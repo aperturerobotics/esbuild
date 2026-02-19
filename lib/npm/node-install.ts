@@ -25,7 +25,7 @@ function validateBinaryVersion(...command: string[]): void {
       // More info:
       // - https://snapcraft.io/ (what the Snap Store is)
       // - https://nodejs.org/dist/ (download the official version of node)
-      // - https://github.com/evanw/esbuild/issues/1711#issuecomment-1027554035
+      // - https://github.com/aperturerobotics/esbuild/issues/1711#issuecomment-1027554035
       //
       stdio: 'pipe',
     }).toString().trim()
@@ -186,7 +186,7 @@ function maybeOptimizePackage(binPath: string): void {
   // Docker. Avoid idempotency issues by just not optimizing when using Yarn.
   //
   // This also doesn't work with WASM because it is not a single binary executable
-  // file. See https://github.com/evanw/esbuild/issues/4209 for more info.
+  // file. See https://github.com/aperturerobotics/esbuild/issues/4209 for more info.
   //
   // This optimization also doesn't apply when npm's "--ignore-scripts" flag is
   // used since in that case this install script will not be run.

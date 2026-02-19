@@ -3,9 +3,9 @@ package css_parser
 import (
 	"fmt"
 
-	"github.com/evanw/esbuild/internal/compat"
-	"github.com/evanw/esbuild/internal/css_ast"
-	"github.com/evanw/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/compat"
+	"github.com/aperturerobotics/esbuild/internal/css_ast"
+	"github.com/aperturerobotics/esbuild/internal/logger"
 )
 
 func (p *parser) lowerNestingInRule(rule css_ast.Rule, results []css_ast.Rule) []css_ast.Rule {
@@ -55,7 +55,7 @@ func (p *parser) lowerNestingInRule(rule css_ast.Rule, results []css_ast.Rule) [
 			// This filtering is only done conditionally because it seems to only
 			// apply sometimes. Specifically it doesn't seem to apply when the
 			// nested rule is an at-rule. So we use the unfiltered list in that
-			// case. See: https://github.com/evanw/esbuild/issues/4265
+			// case. See: https://github.com/aperturerobotics/esbuild/issues/4265
 			parentSelectorsWithPseudo = append(parentSelectorsWithPseudo, css_ast.ComplexSelector{Selectors: substituted})
 		}
 

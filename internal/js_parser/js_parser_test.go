@@ -5,15 +5,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/evanw/esbuild/internal/ast"
-	"github.com/evanw/esbuild/internal/compat"
-	"github.com/evanw/esbuild/internal/config"
-	"github.com/evanw/esbuild/internal/helpers"
-	"github.com/evanw/esbuild/internal/js_ast"
-	"github.com/evanw/esbuild/internal/js_printer"
-	"github.com/evanw/esbuild/internal/logger"
-	"github.com/evanw/esbuild/internal/renamer"
-	"github.com/evanw/esbuild/internal/test"
+	"github.com/aperturerobotics/esbuild/internal/ast"
+	"github.com/aperturerobotics/esbuild/internal/compat"
+	"github.com/aperturerobotics/esbuild/internal/config"
+	"github.com/aperturerobotics/esbuild/internal/helpers"
+	"github.com/aperturerobotics/esbuild/internal/js_ast"
+	"github.com/aperturerobotics/esbuild/internal/js_printer"
+	"github.com/aperturerobotics/esbuild/internal/logger"
+	"github.com/aperturerobotics/esbuild/internal/renamer"
+	"github.com/aperturerobotics/esbuild/internal/test"
 )
 
 func expectParseErrorCommon(t *testing.T, contents string, expected string, options config.Options) {
@@ -232,7 +232,7 @@ func expectPrintedJSXAutomatic(t *testing.T, options JSXAutomaticTestOptions, co
 
 func TestUnOp(t *testing.T) {
 	// This was important to someone for a very obscure reason. See
-	// https://github.com/evanw/esbuild/issues/4041 for more info.
+	// https://github.com/aperturerobotics/esbuild/issues/4041 for more info.
 	expectPrinted(t, "let x; void 0; x", "let x;\nx;\n")
 	expectPrinted(t, "let x; void x; x", "let x;\nvoid x;\nx;\n")
 }
@@ -2823,7 +2823,7 @@ func TestSwitch(t *testing.T) {
 	expectPrintedMangle(t, "for (x of y) z: switch (1) { case 0: a(); break z; default: b(); break z }", "for (x of y) z: switch (1) {\n  default:\n    b();\n    break z;\n}\n")
 
 	// Some people put functions inside case expressions, so make sure that works
-	// For more info, see: https://github.com/evanw/esbuild/issues/4088
+	// For more info, see: https://github.com/aperturerobotics/esbuild/issues/4088
 	expectPrinted(t, "switch (0) { case x(() => 1): y = () => 2; case x(() => 3): y = () => 4 }",
 		"switch (0) {\n  case x(() => 1):\n    y = () => 2;\n  case x(() => 3):\n    y = () => 4;\n}\n")
 
@@ -3676,7 +3676,7 @@ func TestMangleSwitch(t *testing.T) {
 	expectPrintedMangle(t, "switch (2) { case 0: let x; case 1: return x }", "")
 	expectPrintedMangle(t, "switch (2) { case 0: const x = 0; case 1: return x }", "")
 
-	// https://github.com/evanw/esbuild/issues/4359
+	// https://github.com/aperturerobotics/esbuild/issues/4359
 	expectPrintedMangle(t, "switch (x) { case 0: a(); break; default: b() }", "x === 0 ? a() : b();\n")
 	expectPrintedMangle(t, "switch (x) { default: a(); break; case 0: b() }", "x === 0 ? b() : a();\n")
 	expectPrintedMangle(t, "switch (x) { case p: a(); break; case q: default: b() }", "switch (x) {\n  case p:\n    a();\n    break;\n  case q:\n  default:\n    b();\n}\n")
@@ -3687,7 +3687,7 @@ func TestMangleSwitch(t *testing.T) {
 	expectPrintedMangle(t, "switch (x) { case 0: a(); break; default: if (y) break; b() }",
 		"switch (x) {\n  case 0:\n    a();\n    break;\n  default:\n    if (y) break;\n    b();\n}\n")
 
-	// https://github.com/evanw/esbuild/issues/4176
+	// https://github.com/aperturerobotics/esbuild/issues/4176
 	expectPrintedMangle(t, "switch (1) { case 0: case 1: case 2: x() }", "x();\n")
 	expectPrintedMangle(t, "switch (1) { case 0: x(); case 1: case 2: y() }", "y();\n")
 	expectPrintedMangle(t, "switch (1) { case 0: x(); case 1: y(); case 2: z() }", "y(), z();\n")
@@ -4719,7 +4719,7 @@ func TestMangleIIFE(t *testing.T) {
 	expectPrintedNormalAndMangle(t, "/* @__PURE__ */ (() => x)()", "/* @__PURE__ */ (() => x)();\n", "")
 	expectPrintedNormalAndMangle(t, "/* @__PURE__ */ (() => x)(y, z)", "/* @__PURE__ */ (() => x)(y, z);\n", "y, z;\n")
 
-	// https://github.com/evanw/esbuild/issues/4354
+	// https://github.com/aperturerobotics/esbuild/issues/4354
 	expectPrintedNormalAndMangle(t, "let x = () => { let y = () => z(); y() }",
 		"let x = () => {\n  let y = () => z();\n  y();\n};\n",
 		"let x = () => {\n  z();\n};\n")
@@ -5527,7 +5527,7 @@ func TestTrimCodeInDeadControlFlow(t *testing.T) {
 	expectPrintedMangle(t, "if (1) { a(); b() } else { var a; var b; }", "if (1)\n  a(), b();\nelse\n  var a, b;\n")
 	expectPrintedMangle(t, "if (1) a(); else { switch (1) { case 1: case 2: var a } }", "if (1) a();\nelse\n  var a;\n")
 
-	// See: https://github.com/evanw/esbuild/issues/4224
+	// See: https://github.com/aperturerobotics/esbuild/issues/4224
 	expectPrintedMangle(t, "return 'foo'; try { return 'bar' } catch {}", "return \"foo\";\n")
 	expectPrintedMangle(t, "return foo = true; try { var foo } catch {}", "return foo = true;\ntry {\n  var foo;\n} catch {\n}\n")
 	expectPrintedMangle(t, "return foo = true; try {} catch { var foo }", "return foo = true;\ntry {\n} catch {\n  var foo;\n}\n")
@@ -6747,11 +6747,11 @@ func TestMangleTry(t *testing.T) {
 	expectPrintedMangle(t, "try { let x = foo() } finally {}", "{\n  let x = foo();\n}\n")
 
 	// The Kotlin compiler apparently generates code like this.
-	// See https://github.com/evanw/esbuild/issues/4064 for info.
+	// See https://github.com/aperturerobotics/esbuild/issues/4064 for info.
 	expectPrintedMangle(t, "x: try { while (true) ; break x } catch {}", "x: try {\n  for (; ; ) ;\n  break x;\n} catch {\n}\n")
 
 	// The TeaVM compiler apparently generates code like this.
-	// See https://github.com/evanw/esbuild/issues/4351 for info.
+	// See https://github.com/aperturerobotics/esbuild/issues/4351 for info.
 	expectPrintedMangle(t, "d: { e: { try { while (1) { break d } } catch { break e } } }",
 		"d:\n  e:\n    try {\n      for (; ; )\n        break d;\n    } catch {\n      break e;\n    }\n")
 }

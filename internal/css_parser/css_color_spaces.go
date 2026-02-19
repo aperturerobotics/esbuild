@@ -3,7 +3,7 @@ package css_parser
 import (
 	"math"
 
-	"github.com/evanw/esbuild/internal/helpers"
+	"github.com/aperturerobotics/esbuild/internal/helpers"
 )
 
 // Wrap float64 math to avoid compiler optimizations that break determinism

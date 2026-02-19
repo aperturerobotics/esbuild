@@ -450,7 +450,7 @@ import('./compat-table').then(compatTable => {
   // when they are nested inside of a property access. This workaround is overly
   // conservative but is the same thing that UglifyJS does to handle this case.
   //
-  // See https://github.com/mishoo/UglifyJS/pull/2056 and https://github.com/evanw/esbuild/issues/3072
+  // See https://github.com/mishoo/UglifyJS/pull/2056 and https://github.com/aperturerobotics/esbuild/issues/3072
   for (const engine in engines) {
     if (engine as Engine !== 'Safari') {
       js.FunctionOrClassPropertyAccess[engine as Engine] = { 0: { force: true } }

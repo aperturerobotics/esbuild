@@ -126,7 +126,7 @@ func UnsupportedJSFeatures(constraints map[Engine]Semver) (unsupported JSFeature
 
 package api
 
-import "github.com/evanw/esbuild/internal/compat"
+import "github.com/aperturerobotics/esbuild/internal/compat"
 
 type EngineName uint8
 
@@ -148,7 +148,7 @@ ${enginesKeys.filter(engine => engine !== 'ES').map(engine => `\tcase Engine${en
 
 package cli
 
-import "github.com/evanw/esbuild/pkg/api"
+import "github.com/aperturerobotics/esbuild/pkg/api"
 
 var validEngines = map[string]api.EngineName{
 ${jsTableValidEnginesMap(enginesKeys.filter(engine => engine !== 'ES'))}
