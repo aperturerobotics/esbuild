@@ -18,16 +18,16 @@ jobs:
 
     steps:
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.version
         id: go
 
       - name: Setup Node.js environment
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 21
 
@@ -48,16 +48,16 @@ jobs:
 
     steps:
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.version
         id: go
 
       - name: Setup Node.js environment
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 21
 
@@ -80,23 +80,23 @@ jobs:
 
     steps:
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.version
         id: go
 
       - name: Setup Node.js environment
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 21
 
       - name: Setup Deno 1.40.2
         uses: denoland/setup-deno@main
         with:
-          deno-version: v1.40.2
+          deno-version: 2.6.8
 
       - name: go test
         run: go test -race ./internal/...
@@ -204,13 +204,13 @@ jobs:
 
     steps:
       - name: Set up Go 1.21 (the minimum required Go version for esbuild)
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.21
+          go-version: 1.26
         id: go
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: go build
         run: go build ./cmd/esbuild
@@ -268,7 +268,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Read go.version (non-Windows)
         if: matrix.os != 'windows-latest'
@@ -281,7 +281,7 @@ jobs:
           echo "GO_VERSION=$(cat go.version)" >> $Env:GITHUB_ENV
 
       - name: Set up Go 1.x
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
         id: go
@@ -291,12 +291,12 @@ jobs:
       - name: Setup Deno 1.24.0
         uses: denoland/setup-deno@main
         with:
-          deno-version: v1.24.0
+          deno-version: 2.6.8
 
       - name: Setup Node.js environment
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
         with:
-          node-version: 18
+          node-version: 24
 
       - name: Deno Tests (non-Windows)
         if: matrix.os != 'windows-latest'
