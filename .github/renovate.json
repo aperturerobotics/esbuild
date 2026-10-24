@@ -23,6 +23,12 @@
 			"matchManagers": ["gomod"],
 			"matchDepTypes": ["golang"],
 			"enabled": false
+		},
+		{
+			"description": "CI pins old Go and Deno releases on purpose to test the oldest versions esbuild supports.",
+			"matchManagers": ["github-actions"],
+			"matchDepNames": ["go", "deno"],
+			"enabled": false
 		}
 	]
 }
